@@ -129,50 +129,81 @@ export default function ImageSearch() {
     return `https://www.nb.no/items/${baseUrn}?page=${page}`;
   };
 
-  const renderMetadata = (meta) => {
+  const renderHoverOverlay = (url, meta) => {
     if (!meta) return null;
     
     return (
-      <div className="metadata-display">
-        <h6 className="mb-2 text-truncate" title={meta.title}>{meta.title}</h6>
-        {meta.creator && (
-          <p className="mb-1 small text-muted">
-            <strong>Creator:</strong> {meta.creator}
-          </p>
-        )}
-        {meta.date && (
-          <p className="mb-1 small text-muted">
-            <strong>Date:</strong> {meta.date}
-          </p>
-        )}
-        {meta.publisher && (
-          <p className="mb-1 small text-muted">
-            <strong>Publisher:</strong> {meta.publisher}
-          </p>
-        )}
-        {meta.language && (
-          <p className="mb-1 small text-muted">
-            <strong>Language:</strong> {meta.language}
-          </p>
-        )}
-        {meta.rawMetadata && meta.rawMetadata.map((item, idx) => {
-          const label = item.label?.no?.[0] || item.label?.['@value']?.[0] || '';
-          const value = item.value?.no?.[0] || item.value?.['@value']?.[0] || '';
-          if (!label || !value) return null;
-          return (
-            <p key={idx} className="mb-1 small text-muted">
-              <strong>{label}:</strong> {value}
-            </p>
-          );
-        })}
+      <div 
+        className="position-absolute top-0 start-0 w-100 h-100"
+        style={{
+          background: 'rgba(0, 0, 0, 0.85)',
+          color: 'white',
+          padding: '1rem',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          zIndex: 1000,
+          opacity: 0,
+          transition: 'opacity 0.2s ease',
+          cursor: 'default'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.opacity = '1';
+        }}
+        onClick={(e) => e.stopPropagation()} // Prevent image click-through
+      >
+        {/* Top section with title and metadata */}
+        <div>
+          <h6 
+            className="mb-2"
+            style={{ 
+              fontSize: '1rem',
+              lineHeight: '1.2',
+              marginBottom: '0.5rem'
+            }}
+          >
+            {meta.title}
+          </h6>
+          <div className="small" style={{ opacity: 0.9 }}>
+            {meta.creator && <div>{meta.creator}</div>}
+            {meta.date && <div>{meta.date}</div>}
+          </div>
+        </div>
+
+        {/* Bottom section with actions */}
+        <div className="action-buttons" style={{ marginTop: 'auto' }}>
+          <div className="d-flex flex-column gap-2">
+            <button
+              className="btn btn-sm btn-outline-light w-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(generateBookLink(url), '_blank');
+              }}
+              style={{ fontSize: '0.8rem' }}
+            >
+              View in Book
+            </button>
+            <button
+              className="btn btn-sm btn-outline-light w-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleImageClick(url);
+              }}
+              style={{ fontSize: '0.8rem' }}
+            >
+              Find Similar Images
+            </button>
+          </div>
+        </div>
       </div>
     );
   };
 
   return (
-    <div className="container py-4">
+    <div className="container-fluid py-4">
+      {/* Search input section */}
       <div className="row mb-4">
-        <div className="col">
+        <div className="col-md-8 mx-auto">
           <div className="input-group">
             <input
               type="text"
@@ -198,9 +229,10 @@ export default function ImageSearch() {
         </div>
       </div>
 
+      {/* Similar image header */}
       {mode === 'similar' && selectedImage && (
         <div className="row mb-4">
-          <div className="col">
+          <div className="col-md-8 mx-auto">
             <div className="card">
               <div className="card-body d-flex align-items-center">
                 <img 
@@ -223,86 +255,54 @@ export default function ImageSearch() {
         </div>
       )}
 
+      {/* Error display */}
       {error && (
-        <div className="alert alert-danger mb-4">
-          <strong>Error:</strong> {error}
-          <br />
-          <small>Check the browser console for more details.</small>
+        <div className="row mb-4">
+          <div className="col-md-8 mx-auto">
+            <div className="alert alert-danger">
+              <strong>Error:</strong> {error}
+              <br />
+              <small>Check the browser console for more details.</small>
+            </div>
+          </div>
         </div>
       )}
 
-      <div className="row row-cols-1 row-cols-md-3 g-4">
+      {/* Image grid */}
+      <div 
+        className="row g-2" 
+        style={{ 
+          columns: '6 200px',
+          columnGap: '1rem',
+          padding: '0 1rem'
+        }}
+      >
         {results && results.length > 0 ? (
           results.map(({ url, bookId }, index) => (
-            <div key={index} className="col">
+            <div 
+              key={index} 
+              style={{ 
+                breakInside: 'avoid',
+                marginBottom: '1rem'
+              }}
+            >
               <div 
-                className="card h-100"
-                style={{ position: 'relative' }}
+                className="position-relative"
+                onMouseEnter={() => handleImageHover(url)}
+                onMouseLeave={() => setHoveredImageUrl(null)}
+                style={{ cursor: 'pointer' }}
               >
-                <div 
-                  className="position-relative"
-                  onMouseEnter={() => handleImageHover(url)}
-                  onMouseLeave={() => setHoveredImageUrl(null)}
-                >
-                  <img 
-                    src={url} 
-                    alt={`Search result ${index + 1}`}
-                    className="card-img-top"
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => handleImageClick(url)}
-                  />
-                  {hoveredImageUrl === url && metadata[url] && (
-                    <div 
-                      className="position-absolute top-0 start-0 w-100 h-100"
-                      style={{
-                        background: 'rgba(0, 0, 0, 0.8)',
-                        color: 'white',
-                        padding: '1rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        zIndex: 1000,
-                        overflow: 'auto'
-                      }}
-                    >
-                      <div className="text-center">
-                        {renderMetadata(metadata[url])}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="card-body">
-                  <div className="d-flex justify-content-between align-items-center mb-3">
-                    <a 
-                      href={generateBookLink(url)} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="btn btn-sm btn-outline-primary"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        window.open(generateBookLink(url), '_blank');
-                      }}
-                    >
-                      View in Book
-                    </a>
-                    <button
-                      className="btn btn-sm btn-outline-secondary"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleImageClick(url);
-                      }}
-                    >
-                      Find Similar
-                    </button>
-                  </div>
-                  {metadata[url] && (
-                    <div className="metadata-section border-top pt-3">
-                      {renderMetadata(metadata[url])}
-                    </div>
-                  )}
-                </div>
+                <img 
+                  src={url} 
+                  alt={`Search result ${index + 1}`}
+                  className="img-fluid w-100"
+                  style={{ 
+                    display: 'block',
+                    borderRadius: '4px',
+                    backgroundColor: '#f8f9fa'
+                  }}
+                />
+                {hoveredImageUrl === url && metadata[url] && renderHoverOverlay(url, metadata[url])}
               </div>
             </div>
           ))
