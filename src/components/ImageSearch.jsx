@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { searchImages, findSimilarImages } from '../api/similarity';
+import { searchImages, findSimilarImages, fetchImageMetadata } from '../api/similarity';
 
 export default function ImageSearch() {
   const [query, setQuery] = useState('daguerrotypi');
@@ -8,6 +8,7 @@ export default function ImageSearch() {
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [mode, setMode] = useState('search'); // 'search' or 'similar'
+  const [hoveredMetadata, setHoveredMetadata] = useState(null);
 
   const handleSearch = async () => {
     if (!query.trim()) return; // Don't search if query is empty
@@ -80,6 +81,16 @@ export default function ImageSearch() {
       setSelectedImage(null);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleImageHover = async (url) => {
+    try {
+      const metadata = await fetchImageMetadata(url);
+      setHoveredMetadata(metadata);
+    } catch (err) {
+      console.error('Metadata fetch error:', err);
+      setHoveredMetadata(null);
     }
   };
 
@@ -174,7 +185,12 @@ export default function ImageSearch() {
         {results && results.length > 0 ? (
           results.map(({ url, bookId }, index) => (
             <div key={index} className="col">
-              <div className="card h-100">
+              <div 
+                className="card h-100"
+                onMouseEnter={() => handleImageHover(url)}
+                onMouseLeave={() => setHoveredMetadata(null)}
+                style={{ position: 'relative' }}
+              >
                 <img 
                   src={url} 
                   alt={`Search result ${index + 1}`}
@@ -182,6 +198,38 @@ export default function ImageSearch() {
                   style={{ cursor: 'pointer' }}
                   onClick={() => handleImageClick(url)}
                 />
+                {hoveredMetadata && (
+                  <div 
+                    className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+                    style={{
+                      background: 'rgba(0, 0, 0, 0.7)',
+                      color: 'white',
+                      padding: '1rem',
+                      opacity: 0,
+                      transition: 'opacity 0.3s',
+                      cursor: 'pointer',
+                      ':hover': {
+                        opacity: 1
+                      }
+                    }}
+                  >
+                    <div className="text-center">
+                      <h6 className="mb-2">{hoveredMetadata.title}</h6>
+                      {hoveredMetadata.creator && (
+                        <p className="mb-1 small">{hoveredMetadata.creator}</p>
+                      )}
+                      {hoveredMetadata.date && (
+                        <p className="mb-1 small">{hoveredMetadata.date}</p>
+                      )}
+                      {hoveredMetadata.publisher && (
+                        <p className="mb-1 small">{hoveredMetadata.publisher}</p>
+                      )}
+                      {hoveredMetadata.language && (
+                        <p className="mb-1 small">{hoveredMetadata.language}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
                 <div className="card-body">
                   <div className="d-flex justify-content-between align-items-center">
                     <a 

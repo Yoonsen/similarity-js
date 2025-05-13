@@ -1,4 +1,5 @@
 const BASE_URL = 'https://api.nb.no/dhlab/similarity';
+const IIIF_BASE_URL = 'https://api.nb.no/catalog/v1/iiif';
 
 /**
  * Search for images based on text query
@@ -102,12 +103,11 @@ export const findSimilarWords = async (word, collectionName = null) => {
 };
 
 /**
- * Helper function to generate the link to view an image in the library
+ * Extract URN parts from image URL
  * @param {string} imageUrl - The image URL containing the URN
- * @returns {string} The full URL to view the image in the library
+ * @returns {Object} URN parts {prefix, doctyp, urn, page}
  */
-export const generateLibraryLink = (imageUrl) => {
-  const base = "https://www.nb.no/items/";
+const extractUrnParts = (imageUrl) => {
   const urnMatch = imageUrl.match(/URN[^/]*/);
   
   if (!urnMatch) {
@@ -117,5 +117,67 @@ export const generateLibraryLink = (imageUrl) => {
   const urnString = urnMatch[0];
   const [prefix, doctyp, urn, page] = urnString.split('_');
   
-  return `${base}${prefix}_${doctyp}_${urn}?page=${parseInt(page) + 1}`;
+  return {
+    prefix,
+    doctyp,
+    urn,
+    page: parseInt(page)
+  };
+};
+
+/**
+ * Fetch metadata for an image from its IIIF manifest
+ * @param {string} imageUrl - The image URL containing the URN
+ * @returns {Promise<Object>} Image metadata
+ */
+export const fetchImageMetadata = async (imageUrl) => {
+  try {
+    const { prefix, doctyp, urn } = extractUrnParts(imageUrl);
+    const manifestUrl = `${IIIF_BASE_URL}/${prefix}_${doctyp}_${urn}/manifest`;
+    
+    const response = await fetch(manifestUrl);
+    if (!response.ok) {
+      throw new Error(`Manifest fetch failed: ${response.status}`);
+    }
+    
+    const manifest = await response.json();
+    
+    // Extract useful metadata
+    const metadata = {
+      title: manifest.label?.no?.[0] || manifest.label?.['@value']?.[0] || 'Unknown Title',
+      attribution: manifest.attribution?.no?.[0] || manifest.attribution?.['@value']?.[0] || 'Unknown Attribution',
+      publisher: '',
+      date: '',
+      language: '',
+      creator: ''
+    };
+    
+    // Parse additional metadata from manifest
+    if (manifest.metadata) {
+      manifest.metadata.forEach(item => {
+        const label = item.label?.no?.[0]?.toLowerCase() || item.label?.['@value']?.[0]?.toLowerCase() || '';
+        const value = item.value?.no?.[0] || item.value?.['@value']?.[0] || '';
+        
+        if (label.includes('utgiver')) metadata.publisher = value;
+        else if (label.includes('dato')) metadata.date = value;
+        else if (label.includes('språk')) metadata.language = value;
+        else if (label.includes('skaper') || label.includes('creator')) metadata.creator = value;
+      });
+    }
+    
+    return metadata;
+  } catch (error) {
+    console.error('Metadata fetch error:', error);
+    return null;
+  }
+};
+
+/**
+ * Helper function to generate the link to view an image in the library
+ * @param {string} imageUrl - The image URL containing the URN
+ * @returns {string} The full URL to view the image in the library
+ */
+export const generateLibraryLink = (imageUrl) => {
+  const { prefix, doctyp, urn, page } = extractUrnParts(imageUrl);
+  return `https://www.nb.no/items/${prefix}_${doctyp}_${urn}?page=${page + 1}`;
 }; 
