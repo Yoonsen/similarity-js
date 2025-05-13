@@ -272,32 +272,44 @@ export default function ImageSearch() {
       <div 
         className="row g-2" 
         style={{ 
-          columns: '6 200px',
-          columnGap: '1rem',
-          padding: '0 1rem'
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+          gap: '0.5rem',
+          padding: '0 1rem',
+          maxWidth: '1800px',
+          margin: '0 auto'
         }}
       >
         {results && results.length > 0 ? (
           results.map(({ url, bookId }, index) => (
             <div 
               key={index} 
-              style={{ 
-                breakInside: 'avoid',
-                marginBottom: '1rem'
+              className="position-relative"
+              style={{
+                aspectRatio: '1', // Make it square
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
               <div 
                 className="position-relative"
                 onMouseEnter={() => handleImageHover(url)}
                 onMouseLeave={() => setHoveredImageUrl(null)}
-                style={{ cursor: 'pointer' }}
+                style={{ 
+                  cursor: 'pointer',
+                  width: '100%',
+                  height: '100%'
+                }}
               >
                 <img 
                   src={url} 
                   alt={`Search result ${index + 1}`}
-                  className="img-fluid w-100"
                   style={{ 
-                    display: 'block',
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
                     borderRadius: '4px',
                     backgroundColor: '#f8f9fa'
                   }}
