@@ -129,6 +129,46 @@ export default function ImageSearch() {
     return `https://www.nb.no/items/${baseUrn}?page=${page}`;
   };
 
+  const renderMetadata = (meta) => {
+    if (!meta) return null;
+    
+    return (
+      <div className="metadata-display">
+        <h6 className="mb-2 text-truncate" title={meta.title}>{meta.title}</h6>
+        {meta.creator && (
+          <p className="mb-1 small text-muted">
+            <strong>Creator:</strong> {meta.creator}
+          </p>
+        )}
+        {meta.date && (
+          <p className="mb-1 small text-muted">
+            <strong>Date:</strong> {meta.date}
+          </p>
+        )}
+        {meta.publisher && (
+          <p className="mb-1 small text-muted">
+            <strong>Publisher:</strong> {meta.publisher}
+          </p>
+        )}
+        {meta.language && (
+          <p className="mb-1 small text-muted">
+            <strong>Language:</strong> {meta.language}
+          </p>
+        )}
+        {meta.rawMetadata && meta.rawMetadata.map((item, idx) => {
+          const label = item.label?.no?.[0] || item.label?.['@value']?.[0] || '';
+          const value = item.value?.no?.[0] || item.value?.['@value']?.[0] || '';
+          if (!label || !value) return null;
+          return (
+            <p key={idx} className="mb-1 small text-muted">
+              <strong>{label}:</strong> {value}
+            </p>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="container py-4">
       <div className="row mb-4">
@@ -221,29 +261,18 @@ export default function ImageSearch() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        zIndex: 1000
+                        zIndex: 1000,
+                        overflow: 'auto'
                       }}
                     >
                       <div className="text-center">
-                        <h6 className="mb-2">{metadata[url].title}</h6>
-                        {metadata[url].creator && (
-                          <p className="mb-1 small">{metadata[url].creator}</p>
-                        )}
-                        {metadata[url].date && (
-                          <p className="mb-1 small">{metadata[url].date}</p>
-                        )}
-                        {metadata[url].publisher && (
-                          <p className="mb-1 small">{metadata[url].publisher}</p>
-                        )}
-                        {metadata[url].language && (
-                          <p className="mb-1 small">{metadata[url].language}</p>
-                        )}
+                        {renderMetadata(metadata[url])}
                       </div>
                     </div>
                   )}
                 </div>
                 <div className="card-body">
-                  <div className="d-flex justify-content-between align-items-center">
+                  <div className="d-flex justify-content-between align-items-center mb-3">
                     <a 
                       href={generateBookLink(url)} 
                       target="_blank" 
@@ -268,6 +297,11 @@ export default function ImageSearch() {
                       Find Similar
                     </button>
                   </div>
+                  {metadata[url] && (
+                    <div className="metadata-section border-top pt-3">
+                      {renderMetadata(metadata[url])}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

@@ -134,6 +134,7 @@ export const fetchImageMetadata = async (imageUrl) => {
   try {
     const { prefix, doctyp, urn } = extractUrnParts(imageUrl);
     const manifestUrl = `${IIIF_BASE_URL}/${prefix}_${doctyp}_${urn}/manifest`;
+    console.log('Fetching manifest from:', manifestUrl);
     
     const response = await fetch(manifestUrl);
     if (!response.ok) {
@@ -141,15 +142,17 @@ export const fetchImageMetadata = async (imageUrl) => {
     }
     
     const manifest = await response.json();
+    console.log('Full IIIF manifest:', manifest); // Debug log
     
     // Extract useful metadata
     const metadata = {
-      title: manifest.label?.no?.[0] || manifest.label?.['@value']?.[0] || 'Unknown Title',
-      attribution: manifest.attribution?.no?.[0] || manifest.attribution?.['@value']?.[0] || 'Unknown Attribution',
+      title: manifest.label?.no?.[0] || manifest.label?.['@value']?.[0] || manifest.label || 'Unknown Title',
+      attribution: manifest.attribution?.no?.[0] || manifest.attribution?.['@value']?.[0] || manifest.attribution || '',
       publisher: '',
       date: '',
       language: '',
-      creator: ''
+      creator: '',
+      rawMetadata: manifest.metadata || [] // Store raw metadata for display
     };
     
     // Parse additional metadata from manifest
@@ -159,12 +162,13 @@ export const fetchImageMetadata = async (imageUrl) => {
         const value = item.value?.no?.[0] || item.value?.['@value']?.[0] || '';
         
         if (label.includes('utgiver')) metadata.publisher = value;
-        else if (label.includes('dato')) metadata.date = value;
-        else if (label.includes('språk')) metadata.language = value;
-        else if (label.includes('skaper') || label.includes('creator')) metadata.creator = value;
+        else if (label.includes('dato') || label.includes('year')) metadata.date = value;
+        else if (label.includes('språk') || label.includes('language')) metadata.language = value;
+        else if (label.includes('skaper') || label.includes('creator') || label.includes('author')) metadata.creator = value;
       });
     }
     
+    console.log('Extracted metadata:', metadata); // Debug log
     return metadata;
   } catch (error) {
     console.error('Metadata fetch error:', error);
