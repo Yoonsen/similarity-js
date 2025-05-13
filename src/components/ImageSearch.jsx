@@ -8,6 +8,7 @@ export default function ImageSearch() {
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [mode, setMode] = useState('search'); // 'search' or 'similar'
+  const [hoveredImageUrl, setHoveredImageUrl] = useState(null);
   const [hoveredMetadata, setHoveredMetadata] = useState(null);
 
   const handleSearch = async () => {
@@ -85,13 +86,22 @@ export default function ImageSearch() {
   };
 
   const handleImageHover = async (url) => {
+    if (!url || url === hoveredImageUrl) return;
+    setHoveredImageUrl(url);
     try {
       const metadata = await fetchImageMetadata(url);
-      setHoveredMetadata(metadata);
+      if (metadata && hoveredImageUrl === url) { // Check if we're still hovering the same image
+        setHoveredMetadata(metadata);
+      }
     } catch (err) {
       console.error('Metadata fetch error:', err);
       setHoveredMetadata(null);
     }
+  };
+
+  const handleImageLeave = () => {
+    setHoveredImageUrl(null);
+    setHoveredMetadata(null);
   };
 
   // Trigger initial search on component mount
@@ -188,7 +198,7 @@ export default function ImageSearch() {
               <div 
                 className="card h-100"
                 onMouseEnter={() => handleImageHover(url)}
-                onMouseLeave={() => setHoveredMetadata(null)}
+                onMouseLeave={handleImageLeave}
                 style={{ position: 'relative' }}
               >
                 <img 
@@ -198,20 +208,21 @@ export default function ImageSearch() {
                   style={{ cursor: 'pointer' }}
                   onClick={() => handleImageClick(url)}
                 />
-                {hoveredMetadata && (
+                {hoveredImageUrl === url && hoveredMetadata && (
                   <div 
-                    className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+                    className="position-absolute top-0 start-0 w-100 h-100"
                     style={{
                       background: 'rgba(0, 0, 0, 0.7)',
                       color: 'white',
                       padding: '1rem',
-                      opacity: 0,
-                      transition: 'opacity 0.3s',
                       cursor: 'pointer',
-                      ':hover': {
-                        opacity: 1
-                      }
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      opacity: 1,
+                      transition: 'opacity 0.3s ease'
                     }}
+                    onClick={() => handleImageClick(url)}
                   >
                     <div className="text-center">
                       <h6 className="mb-2">{hoveredMetadata.title}</h6>
@@ -237,13 +248,18 @@ export default function ImageSearch() {
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="btn btn-sm btn-outline-primary"
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.open(generateBookLink(url), '_blank');
+                      }}
                     >
                       View in Book
                     </a>
                     <button
                       className="btn btn-sm btn-outline-secondary"
                       onClick={(e) => {
+                        e.preventDefault();
                         e.stopPropagation();
                         handleImageClick(url);
                       }}
