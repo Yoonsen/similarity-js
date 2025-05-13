@@ -1,0 +1,102 @@
+# Similarity-js Project Logbook
+
+## Project Overview
+A React-based image similarity search application that interfaces with the National Library of Norway's DHLAB API. This project is a port of an existing Python/Streamlit application.
+
+## Base URL
+- API Endpoint: https://api.nb.no/dhlab/similarity
+
+## Development Timeline
+
+### Initial Setup (Completed)
+- ✅ Created React/Vite project structure
+- ✅ Configured project with necessary dependencies
+- ✅ Set up GitHub Pages deployment
+- ✅ Implemented base API client for DHLAB endpoints
+
+### Core Features Implementation (Completed)
+- ✅ Text-based image search functionality
+- ✅ Responsive image grid display
+- ✅ Similar image search capability
+- ✅ Book link generation from IIIF URNs
+- ✅ Error handling with React Error Boundaries
+
+### Components Created
+1. **ImageSearch.jsx**
+   - Main search interface
+   - Handles both text and image-based searches
+   - Responsive grid display
+   - Loading states and error handling
+
+2. **ErrorBoundary.jsx**
+   - Global error boundary component
+   - Graceful error state handling
+
+3. **API Client (similarity.js)**
+   - Implements all DHLAB endpoints
+   - Error handling and logging
+   - URN parsing utilities
+
+### Technical Stack
+- React 19.1.0
+- Vite 6.3.5
+- GitHub Pages for deployment
+- Bootstrap for styling
+
+### Current Project State
+The application is functional and deployed on GitHub Pages with the following features:
+- Text search for images in digitized books
+- Similar image search functionality
+- Responsive image grid display
+- Direct links to original book sources
+- Error handling and loading states
+
+### Known Issues
+- None currently reported
+
+### Future Enhancements
+1. **Performance Optimization**
+   - [ ] Implement image lazy loading
+   - [ ] Add pagination for large result sets
+   - [ ] Cache frequent searches
+
+2. **User Experience**
+   - [ ] Add search history
+   - [ ] Implement advanced search filters
+   - [ ] Add image preview modal
+   - [ ] Improve mobile responsiveness
+
+3. **Features**
+   - [ ] Add collection filtering
+   - [ ] Implement batch similar image search
+   - [ ] Add export functionality for search results
+   - [ ] Integrate similar words search feature
+
+4. **Development**
+   - [ ] Add unit tests
+   - [ ] Implement E2E testing
+   - [ ] Add TypeScript support
+   - [ ] Improve documentation
+
+### Deployment
+- Hosted on GitHub Pages
+- Base URL: https://yoonsen.github.io/similarity-js
+- Deployment via `npm run deploy`
+
+### Dependencies
+Key dependencies and their versions:
+- react: ^19.1.0
+- react-dom: ^19.1.0
+- vite: ^6.3.5
+- gh-pages: ^6.1.1
+
+## Notes
+- The project uses Bootstrap for styling
+- API calls are logged to console for debugging
+- URN parsing is handled in the API client
+
+## Last Updated
+March 19, 2024
+
+---
+*This logbook will be updated as the project evolves. Please add entries for any significant changes or decisions.* 
