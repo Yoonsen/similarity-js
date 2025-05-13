@@ -8,6 +8,18 @@ A React-based image similarity search application that interfaces with the Natio
 
 ## Development Timeline
 
+### Latest Updates (March 19, 2024)
+- ✅ Fixed similar image search issues:
+  * Added validation and filtering for image URLs
+  * Improved error handling and logging
+  * Fixed issue with empty images in results
+- ✅ Enhanced popup overlay:
+  * Changed background to slate color (rgba(51, 65, 85, 0.97))
+  * Improved hover behavior with 300ms delay
+  * Added proper mouse event handling
+  * Made popup itself hoverable
+  * Refined shadow and visual effects
+
 ### Initial Setup (Completed)
 - ✅ Created React/Vite project structure
 - ✅ Configured project with necessary dependencies
@@ -46,13 +58,20 @@ A React-based image similarity search application that interfaces with the Natio
 ### Current Project State
 The application is functional and deployed on GitHub Pages with the following features:
 - Text search for images in digitized books
-- Similar image search functionality
+- Similar image search functionality with improved reliability
 - Responsive image grid display
 - Direct links to original book sources
 - Error handling and loading states
+- Enhanced metadata display with hoverable popups
 
 ### Known Issues
 - None currently reported
+
+### Recent Bug Fixes
+- Fixed similar image search displaying empty results
+- Improved URL validation and filtering
+- Enhanced error logging for API responses
+- Added timeout handling for popup display
 
 ### Future Enhancements
 1. **Performance Optimization**

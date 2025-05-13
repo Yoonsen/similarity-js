@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { searchImages, findSimilarImages, fetchImageMetadata } from '../api/similarity';
 
 export default function ImageSearch() {
@@ -10,6 +10,7 @@ export default function ImageSearch() {
   const [mode, setMode] = useState('search'); // 'search' or 'similar'
   const [hoveredImageUrl, setHoveredImageUrl] = useState(null);
   const [metadata, setMetadata] = useState({});
+  const hideTimeoutRef = useRef(null);
 
   const handleSearch = async () => {
     if (!query.trim()) return; // Don't search if query is empty
@@ -66,14 +67,17 @@ export default function ImageSearch() {
         throw new Error('Invalid response from similar images API');
       }
       
-      // Transform the response data the same way as search results
+      // Transform the response data and filter out invalid URLs
       const imageUrls = Object.entries(data).flatMap(([bookId, urls]) => 
-        urls.map(url => ({
-          bookId,
-          url,
-        }))
+        urls
+          .filter(url => url && typeof url === 'string' && url.includes('URN:NBN:no-nb_'))
+          .map(url => ({
+            bookId,
+            url,
+          }))
       );
       
+      console.log('Filtered similar images:', imageUrls);
       setResults(imageUrls);
     } catch (err) {
       console.error('Similar image search error:', err);
@@ -85,24 +89,45 @@ export default function ImageSearch() {
     }
   };
 
-  const handleImageHover = async (url) => {
-    setHoveredImageUrl(url);
-    if (!metadata[url]) {
-      try {
-        const imageMetadata = await fetchImageMetadata(url);
-        setMetadata(prev => ({
-          ...prev,
-          [url]: imageMetadata
-        }));
-      } catch (err) {
-        console.error('Metadata fetch error:', err);
-        setMetadata(prev => ({
-          ...prev,
-          [url]: null
-        }));
+  const handleImageHover = async (url, isEntering) => {
+    if (isEntering) {
+      // Clear any existing timeout
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+        hideTimeoutRef.current = null;
       }
+      setHoveredImageUrl(url);
+      if (!metadata[url]) {
+        try {
+          const imageMetadata = await fetchImageMetadata(url);
+          setMetadata(prev => ({
+            ...prev,
+            [url]: imageMetadata
+          }));
+        } catch (err) {
+          console.error('Metadata fetch error:', err);
+          setMetadata(prev => ({
+            ...prev,
+            [url]: null
+          }));
+        }
+      }
+    } else {
+      // Set a timeout before hiding
+      hideTimeoutRef.current = setTimeout(() => {
+        setHoveredImageUrl(null);
+      }, 300); // 300ms delay before hiding
     }
   };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Trigger initial search on component mount
   useEffect(() => {
@@ -134,23 +159,28 @@ export default function ImageSearch() {
     
     return (
       <div 
-        className="position-absolute top-0 start-0 w-100 h-100"
+        className="position-absolute"
         style={{
-          background: 'rgba(0, 0, 0, 0.85)',
+          background: 'rgba(51, 65, 85, 0.97)',
           color: 'white',
           padding: '1rem',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
           zIndex: 1000,
-          opacity: 0,
-          transition: 'opacity 0.2s ease',
+          minWidth: '200px',
+          minHeight: '180px',
+          width: 'max-content',
+          maxWidth: '300px',
+          borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+          bottom: '100%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          marginBottom: '10px',
           cursor: 'default'
         }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.opacity = '1';
-        }}
-        onClick={(e) => e.stopPropagation()} // Prevent image click-through
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Top section with title and metadata */}
         <div>
@@ -159,14 +189,15 @@ export default function ImageSearch() {
             style={{ 
               fontSize: '1rem',
               lineHeight: '1.2',
-              marginBottom: '0.5rem'
+              marginBottom: '0.5rem',
+              wordBreak: 'break-word'
             }}
           >
             {meta.title}
           </h6>
           <div className="small" style={{ opacity: 0.9 }}>
-            {meta.creator && <div>{meta.creator}</div>}
-            {meta.date && <div>{meta.date}</div>}
+            {meta.creator && <div className="mb-1">{meta.creator}</div>}
+            {meta.date && <div className="mb-1">{meta.date}</div>}
           </div>
         </div>
 
@@ -195,6 +226,20 @@ export default function ImageSearch() {
             </button>
           </div>
         </div>
+
+        {/* Arrow pointing to the image */}
+        <div 
+          style={{
+            position: 'absolute',
+            bottom: '-6px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: '12px',
+            height: '12px',
+            background: 'rgba(51, 65, 85, 0.97)',
+            clipPath: 'polygon(50% 100%, 0 0, 100% 0)',
+          }}
+        />
       </div>
     );
   };
@@ -295,8 +340,8 @@ export default function ImageSearch() {
             >
               <div 
                 className="position-relative"
-                onMouseEnter={() => handleImageHover(url)}
-                onMouseLeave={() => setHoveredImageUrl(null)}
+                onMouseEnter={() => handleImageHover(url, true)}
+                onMouseLeave={() => handleImageHover(url, false)}
                 style={{ 
                   cursor: 'pointer',
                   width: '100%',
@@ -314,7 +359,98 @@ export default function ImageSearch() {
                     backgroundColor: '#f8f9fa'
                   }}
                 />
-                {hoveredImageUrl === url && metadata[url] && renderHoverOverlay(url, metadata[url])}
+                {hoveredImageUrl === url && metadata[url] && (
+                  <div 
+                    className="position-absolute"
+                    onMouseEnter={() => {
+                      if (hideTimeoutRef.current) {
+                        clearTimeout(hideTimeoutRef.current);
+                        hideTimeoutRef.current = null;
+                      }
+                    }}
+                    onMouseLeave={() => handleImageHover(url, false)}
+                    style={{
+                      background: 'rgba(51, 65, 85, 0.97)',
+                      color: 'white',
+                      padding: '1rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      zIndex: 1000,
+                      minWidth: '200px',
+                      minHeight: '180px',
+                      width: 'max-content',
+                      maxWidth: '300px',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                      bottom: '100%',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      marginBottom: '10px',
+                      cursor: 'default'
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Top section with title and metadata */}
+                    <div>
+                      <h6 
+                        className="mb-2"
+                        style={{ 
+                          fontSize: '1rem',
+                          lineHeight: '1.2',
+                          marginBottom: '0.5rem',
+                          wordBreak: 'break-word'
+                        }}
+                      >
+                        {metadata[url].title}
+                      </h6>
+                      <div className="small" style={{ opacity: 0.9 }}>
+                        {metadata[url].creator && <div className="mb-1">{metadata[url].creator}</div>}
+                        {metadata[url].date && <div className="mb-1">{metadata[url].date}</div>}
+                      </div>
+                    </div>
+
+                    {/* Bottom section with actions */}
+                    <div className="action-buttons" style={{ marginTop: 'auto' }}>
+                      <div className="d-flex flex-column gap-2">
+                        <button
+                          className="btn btn-sm btn-outline-light w-100"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(generateBookLink(url), '_blank');
+                          }}
+                          style={{ fontSize: '0.8rem' }}
+                        >
+                          View in Book
+                        </button>
+                        <button
+                          className="btn btn-sm btn-outline-light w-100"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleImageClick(url);
+                          }}
+                          style={{ fontSize: '0.8rem' }}
+                        >
+                          Find Similar Images
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Arrow pointing to the image */}
+                    <div 
+                      style={{
+                        position: 'absolute',
+                        bottom: '-6px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        width: '12px',
+                        height: '12px',
+                        background: 'rgba(51, 65, 85, 0.97)',
+                        clipPath: 'polygon(50% 100%, 0 0, 100% 0)',
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           ))

@@ -58,7 +58,22 @@ export const findSimilarImages = async (imageUrl = null, limit = 10) => {
     }
     
     const data = await response.json();
-    console.log('Similar images results:', data);
+    console.log('Raw similar images response:', data);
+    
+    // Validate the response structure
+    if (!data || typeof data !== 'object') {
+      console.error('Invalid response format:', data);
+      throw new Error('Invalid response format from similar images API');
+    }
+
+    // Log the structure of each book's images
+    Object.entries(data).forEach(([bookId, urls]) => {
+      console.log(`Book ${bookId} images:`, urls);
+      if (!Array.isArray(urls)) {
+        console.error(`Invalid URLs format for book ${bookId}:`, urls);
+      }
+    });
+
     return data;
   } catch (error) {
     console.error('Similar image fetch error:', error);
