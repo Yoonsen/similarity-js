@@ -107,6 +107,18 @@
   - [ ] Remember search history
   - [ ] Customize results display
 
+## Features
+- [ ] Add collection filtering
+- [ ] Implement batch similar image search
+- [ ] Add export functionality for search results
+- [ ] Integrate similar words search feature
+- [ ] Implement recursive similarity search
+  - [ ] Add depth control for recursion
+  - [ ] Visualize similarity chains/paths
+  - [ ] Show similarity scores between images
+  - [ ] Allow branching exploration of similar images
+  - [ ] Add option to save/export similarity paths
+
 ## Notes
 - Priority should be given to core UX improvements
 - Mobile optimization is important for accessibility

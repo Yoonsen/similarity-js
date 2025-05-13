@@ -90,6 +90,11 @@ The application is functional and deployed on GitHub Pages with the following fe
    - [ ] Implement batch similar image search
    - [ ] Add export functionality for search results
    - [ ] Integrate similar words search feature
+   - [ ] Implement recursive similarity search
+     * Allow exploring chains of similar images
+     * Control recursion depth
+     * Visualize similarity relationships
+     * Track and export similarity paths
 
 4. **Development**
    - [ ] Add unit tests

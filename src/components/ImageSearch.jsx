@@ -354,7 +354,7 @@ export default function ImageSearch() {
                   style={{ 
                     width: '100%',
                     height: '100%',
-                    objectFit: 'cover',
+                    objectFit: 'contain',
                     borderRadius: '4px',
                     backgroundColor: '#f8f9fa'
                   }}
