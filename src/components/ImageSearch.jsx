@@ -10,6 +10,7 @@ export default function ImageSearch() {
   const [mode, setMode] = useState('search'); // 'search' or 'similar'
 
   const handleSearch = async () => {
+    if (!query.trim()) return; // Don't search if query is empty
     try {
       setLoading(true);
       setError(null);
@@ -32,6 +33,14 @@ export default function ImageSearch() {
       setError(err.message || 'An error occurred during search');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Handle key press for search input
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSearch();
     }
   };
 
@@ -108,8 +117,9 @@ export default function ImageSearch() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onKeyPress={handleKeyPress}
               className="form-control"
-              placeholder="Enter search term..."
+              placeholder="Enter search term and press Enter..."
             />
             <button 
               onClick={handleSearch}
