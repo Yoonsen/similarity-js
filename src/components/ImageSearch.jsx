@@ -9,7 +9,7 @@ export default function ImageSearch() {
   const [selectedImage, setSelectedImage] = useState(null);
   const [mode, setMode] = useState('search'); // 'search' or 'similar'
   const [hoveredImageUrl, setHoveredImageUrl] = useState(null);
-  const [hoveredMetadata, setHoveredMetadata] = useState(null);
+  const [metadata, setMetadata] = useState({});
 
   const handleSearch = async () => {
     if (!query.trim()) return; // Don't search if query is empty
@@ -86,22 +86,22 @@ export default function ImageSearch() {
   };
 
   const handleImageHover = async (url) => {
-    if (!url || url === hoveredImageUrl) return;
     setHoveredImageUrl(url);
-    try {
-      const metadata = await fetchImageMetadata(url);
-      if (metadata && hoveredImageUrl === url) { // Check if we're still hovering the same image
-        setHoveredMetadata(metadata);
+    if (!metadata[url]) {
+      try {
+        const imageMetadata = await fetchImageMetadata(url);
+        setMetadata(prev => ({
+          ...prev,
+          [url]: imageMetadata
+        }));
+      } catch (err) {
+        console.error('Metadata fetch error:', err);
+        setMetadata(prev => ({
+          ...prev,
+          [url]: null
+        }));
       }
-    } catch (err) {
-      console.error('Metadata fetch error:', err);
-      setHoveredMetadata(null);
     }
-  };
-
-  const handleImageLeave = () => {
-    setHoveredImageUrl(null);
-    setHoveredMetadata(null);
   };
 
   // Trigger initial search on component mount
@@ -197,50 +197,51 @@ export default function ImageSearch() {
             <div key={index} className="col">
               <div 
                 className="card h-100"
-                onMouseEnter={() => handleImageHover(url)}
-                onMouseLeave={handleImageLeave}
                 style={{ position: 'relative' }}
               >
-                <img 
-                  src={url} 
-                  alt={`Search result ${index + 1}`}
-                  className="card-img-top"
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => handleImageClick(url)}
-                />
-                {hoveredImageUrl === url && hoveredMetadata && (
-                  <div 
-                    className="position-absolute top-0 start-0 w-100 h-100"
-                    style={{
-                      background: 'rgba(0, 0, 0, 0.7)',
-                      color: 'white',
-                      padding: '1rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      opacity: 1,
-                      transition: 'opacity 0.3s ease'
-                    }}
+                <div 
+                  className="position-relative"
+                  onMouseEnter={() => handleImageHover(url)}
+                  onMouseLeave={() => setHoveredImageUrl(null)}
+                >
+                  <img 
+                    src={url} 
+                    alt={`Search result ${index + 1}`}
+                    className="card-img-top"
+                    style={{ cursor: 'pointer' }}
                     onClick={() => handleImageClick(url)}
-                  >
-                    <div className="text-center">
-                      <h6 className="mb-2">{hoveredMetadata.title}</h6>
-                      {hoveredMetadata.creator && (
-                        <p className="mb-1 small">{hoveredMetadata.creator}</p>
-                      )}
-                      {hoveredMetadata.date && (
-                        <p className="mb-1 small">{hoveredMetadata.date}</p>
-                      )}
-                      {hoveredMetadata.publisher && (
-                        <p className="mb-1 small">{hoveredMetadata.publisher}</p>
-                      )}
-                      {hoveredMetadata.language && (
-                        <p className="mb-1 small">{hoveredMetadata.language}</p>
-                      )}
+                  />
+                  {hoveredImageUrl === url && metadata[url] && (
+                    <div 
+                      className="position-absolute top-0 start-0 w-100 h-100"
+                      style={{
+                        background: 'rgba(0, 0, 0, 0.8)',
+                        color: 'white',
+                        padding: '1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1000
+                      }}
+                    >
+                      <div className="text-center">
+                        <h6 className="mb-2">{metadata[url].title}</h6>
+                        {metadata[url].creator && (
+                          <p className="mb-1 small">{metadata[url].creator}</p>
+                        )}
+                        {metadata[url].date && (
+                          <p className="mb-1 small">{metadata[url].date}</p>
+                        )}
+                        {metadata[url].publisher && (
+                          <p className="mb-1 small">{metadata[url].publisher}</p>
+                        )}
+                        {metadata[url].language && (
+                          <p className="mb-1 small">{metadata[url].language}</p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
                 <div className="card-body">
                   <div className="d-flex justify-content-between align-items-center">
                     <a 
