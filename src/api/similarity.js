@@ -4,10 +4,10 @@ const IIIF_BASE_URL = 'https://api.nb.no/catalog/v1/iiif';
 /**
  * Search for images based on text query
  * @param {string} search - Search query
- * @param {number} hits - Number of results to return (default: 10)
+ * @param {number} hits - Number of results to return (default: 20)
  * @returns {Promise<Object>} Object mapping book IDs to arrays of image URLs
  */
-export const searchImages = async (search = null, hits = 10) => {
+export const searchImages = async (search = null, hits = 20) => {
   try {
     const params = new URLSearchParams();
     if (search !== null) params.append('search', search);
@@ -39,10 +39,10 @@ export const searchImages = async (search = null, hits = 10) => {
 /**
  * Find similar images to a given image
  * @param {string} imageUrl - URL of the image to find similar ones for
- * @param {number} limit - Number of results to return (default: 10)
+ * @param {number} limit - Number of results to return (default: 20)
  * @returns {Promise<Object>} Object mapping book IDs to arrays of image URLs
  */
-export const findSimilarImages = async (imageUrl = null, limit = 10) => {
+export const findSimilarImages = async (imageUrl = null, limit = 20) => {
   try {
     const params = new URLSearchParams();
     if (imageUrl !== null) params.append('image_url', imageUrl);

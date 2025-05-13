@@ -20,7 +20,7 @@ export default function ImageSearch() {
       setMode('search');
       setSelectedImage(null);
       console.log('Starting search with query:', query);
-      const data = await searchImages(query);
+      const data = await searchImages(query, 20);
       
       // Transform the data into a flat array of image URLs with their book IDs
       const imageUrls = Object.entries(data).flatMap(([bookId, urls]) => 
@@ -61,7 +61,7 @@ export default function ImageSearch() {
       setSelectedImage(url);
       
       // Get similar images using the full URL
-      const data = await findSimilarImages(url);
+      const data = await findSimilarImages(url, 20);
       
       if (!data || typeof data !== 'object') {
         throw new Error('Invalid response from similar images API');
@@ -163,21 +163,21 @@ export default function ImageSearch() {
         style={{
           background: 'rgba(51, 65, 85, 0.97)',
           color: 'white',
-          padding: '1rem',
+          padding: '0.75rem',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
           zIndex: 1000,
-          minWidth: '200px',
-          minHeight: '180px',
+          minWidth: '160px',
+          minHeight: '140px',
           width: 'max-content',
-          maxWidth: '300px',
-          borderRadius: '8px',
+          maxWidth: '240px',
+          borderRadius: '6px',
           boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-          bottom: '100%',
+          bottom: '85%',
           left: '50%',
           transform: 'translateX(-50%)',
-          marginBottom: '10px',
+          marginBottom: '0',
           cursor: 'default'
         }}
         onClick={(e) => e.stopPropagation()}
@@ -185,32 +185,32 @@ export default function ImageSearch() {
         {/* Top section with title and metadata */}
         <div>
           <h6 
-            className="mb-2"
+            className="mb-1"
             style={{ 
-              fontSize: '1rem',
+              fontSize: '0.9rem',
               lineHeight: '1.2',
-              marginBottom: '0.5rem',
+              marginBottom: '0.4rem',
               wordBreak: 'break-word'
             }}
           >
             {meta.title}
           </h6>
-          <div className="small" style={{ opacity: 0.9 }}>
+          <div className="small" style={{ opacity: 0.9, fontSize: '0.8rem' }}>
             {meta.creator && <div className="mb-1">{meta.creator}</div>}
             {meta.date && <div className="mb-1">{meta.date}</div>}
           </div>
         </div>
 
         {/* Bottom section with actions */}
-        <div className="action-buttons" style={{ marginTop: 'auto' }}>
-          <div className="d-flex flex-column gap-2">
+        <div className="action-buttons" style={{ marginTop: '0.5rem' }}>
+          <div className="d-flex flex-column gap-1">
             <button
               className="btn btn-sm btn-outline-light w-100"
               onClick={(e) => {
                 e.stopPropagation();
                 window.open(generateBookLink(url), '_blank');
               }}
-              style={{ fontSize: '0.8rem' }}
+              style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
             >
               View in Book
             </button>
@@ -220,7 +220,7 @@ export default function ImageSearch() {
                 e.stopPropagation();
                 handleImageClick(url);
               }}
-              style={{ fontSize: '0.8rem' }}
+              style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
             >
               Find Similar Images
             </button>
@@ -234,8 +234,8 @@ export default function ImageSearch() {
             bottom: '-6px',
             left: '50%',
             transform: 'translateX(-50%)',
-            width: '12px',
-            height: '12px',
+            width: '10px',
+            height: '10px',
             background: 'rgba(51, 65, 85, 0.97)',
             clipPath: 'polygon(50% 100%, 0 0, 100% 0)',
           }}
@@ -315,14 +315,14 @@ export default function ImageSearch() {
 
       {/* Image grid */}
       <div 
-        className="row g-2" 
         style={{ 
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-          gap: '0.5rem',
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '0.25rem',
           padding: '0 1rem',
           maxWidth: '1800px',
-          margin: '0 auto'
+          margin: '0 auto',
+          alignItems: 'flex-start'
         }}
       >
         {results && results.length > 0 ? (
@@ -331,11 +331,13 @@ export default function ImageSearch() {
               key={index} 
               className="position-relative"
               style={{
-                aspectRatio: '1', // Make it square
-                width: '100%',
+                height: '200px', // Fixed height for all images
+                flexGrow: 0,
+                flexShrink: 0,
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                padding: '1px'
               }}
             >
               <div 
@@ -344,19 +346,29 @@ export default function ImageSearch() {
                 onMouseLeave={() => handleImageHover(url, false)}
                 style={{ 
                   cursor: 'pointer',
-                  width: '100%',
-                  height: '100%'
+                  height: '100%',
+                  border: '1px solid #f8f9fa',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}
               >
                 <img 
                   src={url} 
                   alt={`Search result ${index + 1}`}
                   style={{ 
-                    width: '100%',
                     height: '100%',
+                    width: 'auto',
+                    maxWidth: 'none',
                     objectFit: 'contain',
-                    borderRadius: '4px',
+                    borderRadius: '2px',
                     backgroundColor: '#f8f9fa'
+                  }}
+                  onLoad={(e) => {
+                    // Calculate width based on aspect ratio while maintaining fixed height
+                    const aspectRatio = e.target.naturalWidth / e.target.naturalHeight;
+                    const width = 200 * aspectRatio; // 200px is our fixed height
+                    e.target.parentElement.style.width = `${width}px`;
                   }}
                 />
                 {hoveredImageUrl === url && metadata[url] && (
@@ -372,21 +384,21 @@ export default function ImageSearch() {
                     style={{
                       background: 'rgba(51, 65, 85, 0.97)',
                       color: 'white',
-                      padding: '1rem',
+                      padding: '0.75rem',
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'space-between',
                       zIndex: 1000,
-                      minWidth: '200px',
-                      minHeight: '180px',
+                      minWidth: '160px',
+                      minHeight: '140px',
                       width: 'max-content',
-                      maxWidth: '300px',
-                      borderRadius: '8px',
+                      maxWidth: '240px',
+                      borderRadius: '6px',
                       boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-                      bottom: '100%',
+                      bottom: '85%',
                       left: '50%',
                       transform: 'translateX(-50%)',
-                      marginBottom: '10px',
+                      marginBottom: '0',
                       cursor: 'default'
                     }}
                     onClick={(e) => e.stopPropagation()}
@@ -394,32 +406,32 @@ export default function ImageSearch() {
                     {/* Top section with title and metadata */}
                     <div>
                       <h6 
-                        className="mb-2"
+                        className="mb-1"
                         style={{ 
-                          fontSize: '1rem',
+                          fontSize: '0.9rem',
                           lineHeight: '1.2',
-                          marginBottom: '0.5rem',
+                          marginBottom: '0.4rem',
                           wordBreak: 'break-word'
                         }}
                       >
                         {metadata[url].title}
                       </h6>
-                      <div className="small" style={{ opacity: 0.9 }}>
+                      <div className="small" style={{ opacity: 0.9, fontSize: '0.8rem' }}>
                         {metadata[url].creator && <div className="mb-1">{metadata[url].creator}</div>}
                         {metadata[url].date && <div className="mb-1">{metadata[url].date}</div>}
                       </div>
                     </div>
 
                     {/* Bottom section with actions */}
-                    <div className="action-buttons" style={{ marginTop: 'auto' }}>
-                      <div className="d-flex flex-column gap-2">
+                    <div className="action-buttons" style={{ marginTop: '0.5rem' }}>
+                      <div className="d-flex flex-column gap-1">
                         <button
                           className="btn btn-sm btn-outline-light w-100"
                           onClick={(e) => {
                             e.stopPropagation();
                             window.open(generateBookLink(url), '_blank');
                           }}
-                          style={{ fontSize: '0.8rem' }}
+                          style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
                         >
                           View in Book
                         </button>
@@ -429,7 +441,7 @@ export default function ImageSearch() {
                             e.stopPropagation();
                             handleImageClick(url);
                           }}
-                          style={{ fontSize: '0.8rem' }}
+                          style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
                         >
                           Find Similar Images
                         </button>
@@ -443,8 +455,8 @@ export default function ImageSearch() {
                         bottom: '-6px',
                         left: '50%',
                         transform: 'translateX(-50%)',
-                        width: '12px',
-                        height: '12px',
+                        width: '10px',
+                        height: '10px',
                         background: 'rgba(51, 65, 85, 0.97)',
                         clipPath: 'polygon(50% 100%, 0 0, 100% 0)',
                       }}
