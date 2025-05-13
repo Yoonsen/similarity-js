@@ -9,16 +9,24 @@ A React-based image similarity search application that interfaces with the Natio
 ## Development Timeline
 
 ### Latest Updates (March 19, 2024)
+- ✅ Improved image display and layout:
+  * Implemented justified grid layout with fixed height rows
+  * Images maintain aspect ratio while filling available space
+  * Increased results to 20 images for better content density
+  * Added subtle spacing and borders between images
+- ✅ Enhanced popup overlay:
+  * More compact design with reduced dimensions
+  * Overlaps image slightly for better space usage
+  * Refined typography and spacing
+  * Smoother hover interactions
 - ✅ Fixed similar image search issues:
   * Added validation and filtering for image URLs
   * Improved error handling and logging
   * Fixed issue with empty images in results
-- ✅ Enhanced popup overlay:
-  * Changed background to slate color (rgba(51, 65, 85, 0.97))
-  * Improved hover behavior with 300ms delay
-  * Added proper mouse event handling
-  * Made popup itself hoverable
-  * Refined shadow and visual effects
+- ✅ Performance improvements:
+  * Increased default results to 20 images
+  * Optimized image loading and scaling
+  * Better space utilization in the grid
 
 ### Initial Setup (Completed)
 - ✅ Created React/Vite project structure
