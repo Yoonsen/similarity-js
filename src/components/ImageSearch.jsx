@@ -379,7 +379,7 @@ export default function ImageSearch() {
                     className="position-absolute"
                     style={{
                       inset: 0,
-                      background: 'rgba(0, 0, 0, 0.3)',
+                      background: 'rgba(0, 0, 0, 0.4)',
                       color: 'white',
                       display: 'flex',
                       alignItems: 'center',
@@ -390,13 +390,37 @@ export default function ImageSearch() {
                   >
                     <div style={{ 
                       fontSize: '0.7rem',
-                      padding: '0.5rem',
+                      padding: '0.75rem',
                       textAlign: 'center',
                       textShadow: '0 1px 2px rgba(0,0,0,0.6)',
-                      maxWidth: '90%'
+                      maxWidth: '90%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.25rem'
                     }}>
-                      {metadata[url].title}
-                      <div style={{ fontSize: '0.65rem', marginTop: '0.25rem', opacity: 0.9 }}>
+                      <div style={{ fontWeight: '500' }}>{metadata[url].title}</div>
+                      {(metadata[url].creator || metadata[url].date) && (
+                        <div style={{ 
+                          fontSize: '0.65rem', 
+                          opacity: 0.9,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.1rem'
+                        }}>
+                          {metadata[url].creator && (
+                            <span>{metadata[url].creator}</span>
+                          )}
+                          {metadata[url].date && (
+                            <span>{metadata[url].date}</span>
+                          )}
+                        </div>
+                      )}
+                      <div style={{ 
+                        fontSize: '0.65rem', 
+                        marginTop: '0.25rem',
+                        opacity: 0.8,
+                        fontStyle: 'italic'
+                      }}>
                         Click for details
                       </div>
                     </div>

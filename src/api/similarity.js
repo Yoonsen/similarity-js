@@ -157,7 +157,7 @@ export const fetchImageMetadata = async (imageUrl) => {
     }
     
     const manifest = await response.json();
-    console.log('Full IIIF manifest:', manifest); // Debug log
+    console.log('Raw metadata from manifest:', manifest.metadata);
     
     // Extract useful metadata
     const metadata = {
@@ -176,14 +176,16 @@ export const fetchImageMetadata = async (imageUrl) => {
         const label = item.label?.no?.[0]?.toLowerCase() || item.label?.['@value']?.[0]?.toLowerCase() || '';
         const value = item.value?.no?.[0] || item.value?.['@value']?.[0] || '';
         
+        console.log('Processing metadata item:', { label, value });
+        
         if (label.includes('utgiver')) metadata.publisher = value;
-        else if (label.includes('dato') || label.includes('year')) metadata.date = value;
+        else if (label.includes('dato') || label.includes('year') || label.includes('år')) metadata.date = value;
         else if (label.includes('språk') || label.includes('language')) metadata.language = value;
-        else if (label.includes('skaper') || label.includes('creator') || label.includes('author')) metadata.creator = value;
+        else if (label.includes('skaper') || label.includes('creator') || label.includes('author') || label.includes('forfatter')) metadata.creator = value;
       });
     }
     
-    console.log('Extracted metadata:', metadata); // Debug log
+    console.log('Extracted metadata:', metadata);
     return metadata;
   } catch (error) {
     console.error('Metadata fetch error:', error);
