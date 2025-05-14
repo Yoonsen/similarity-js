@@ -423,47 +423,70 @@ export default function ImageSearch() {
           style={{
             display: 'block',
             backgroundColor: 'rgba(0,0,0,0.5)',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 1050,
+            overflowY: 'auto',
+            padding: '1rem'
           }}
           onClick={() => setSelectedImageForModal(null)}
         >
           <div 
             className="modal-dialog modal-dialog-centered"
+            style={{
+              maxWidth: '90vw',
+              width: 'auto',
+              margin: '1.75rem auto'
+            }}
             onClick={e => e.stopPropagation()}
           >
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">{metadata[selectedImageForModal].title}</h5>
+                <h5 className="modal-title" style={{ fontSize: '1rem' }}>{metadata[selectedImageForModal].title}</h5>
                 <button 
                   type="button" 
                   className="btn-close"
                   onClick={() => setSelectedImageForModal(null)}
                 ></button>
               </div>
-              <div className="modal-body">
-                <img 
-                  src={selectedImageForModal}
-                  alt={metadata[selectedImageForModal].title}
-                  style={{
-                    width: '100%',
-                    height: 'auto',
-                    marginBottom: '1rem'
-                  }}
-                />
-                <div className="metadata">
+              <div className="modal-body" style={{ padding: '1rem' }}>
+                <div style={{
+                  maxHeight: '70vh',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center'
+                }}>
+                  <img 
+                    src={selectedImageForModal}
+                    alt={metadata[selectedImageForModal].title}
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '60vh',
+                      height: 'auto',
+                      objectFit: 'contain',
+                      marginBottom: '1rem'
+                    }}
+                  />
+                </div>
+                <div className="metadata" style={{ fontSize: '0.9rem' }}>
                   {metadata[selectedImageForModal].creator && (
-                    <p><strong>Creator:</strong> {metadata[selectedImageForModal].creator}</p>
+                    <p className="mb-1"><strong>Creator:</strong> {metadata[selectedImageForModal].creator}</p>
                   )}
                   {metadata[selectedImageForModal].date && (
-                    <p><strong>Date:</strong> {metadata[selectedImageForModal].date}</p>
+                    <p className="mb-1"><strong>Date:</strong> {metadata[selectedImageForModal].date}</p>
                   )}
                   {metadata[selectedImageForModal].publisher && (
-                    <p><strong>Publisher:</strong> {metadata[selectedImageForModal].publisher}</p>
+                    <p className="mb-1"><strong>Publisher:</strong> {metadata[selectedImageForModal].publisher}</p>
                   )}
                 </div>
               </div>
-              <div className="modal-footer">
+              <div className="modal-footer" style={{ padding: '0.75rem' }}>
                 <button
-                  className="btn btn-outline-primary"
+                  className="btn btn-outline-primary btn-sm"
                   onClick={(e) => {
                     e.stopPropagation();
                     window.open(generateBookLink(selectedImageForModal), '_blank');
@@ -472,7 +495,7 @@ export default function ImageSearch() {
                   View in Book
                 </button>
                 <button
-                  className="btn btn-primary"
+                  className="btn btn-primary btn-sm"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleImageClick(selectedImageForModal);
