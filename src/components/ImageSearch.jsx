@@ -11,6 +11,7 @@ export default function ImageSearch() {
   const [hoveredImageUrl, setHoveredImageUrl] = useState(null);
   const [metadata, setMetadata] = useState({});
   const hideTimeoutRef = useRef(null);
+  const [selectedImageForModal, setSelectedImageForModal] = useState(null);
 
   const handleSearch = async () => {
     if (!query.trim()) return; // Don't search if query is empty
@@ -344,13 +345,16 @@ export default function ImageSearch() {
                 className="position-relative"
                 onMouseEnter={() => handleImageHover(url, true)}
                 onMouseLeave={() => handleImageHover(url, false)}
+                onClick={() => setSelectedImageForModal(url)}
                 style={{ 
                   cursor: 'pointer',
                   height: '100%',
                   border: '1px solid #f8f9fa',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  transition: 'transform 0.2s ease-in-out',
+                  transform: hoveredImageUrl === url ? 'scale(1.02)' : 'scale(1)',
                 }}
               >
                 <img 
@@ -365,102 +369,37 @@ export default function ImageSearch() {
                     backgroundColor: '#f8f9fa'
                   }}
                   onLoad={(e) => {
-                    // Calculate width based on aspect ratio while maintaining fixed height
                     const aspectRatio = e.target.naturalWidth / e.target.naturalHeight;
-                    const width = 200 * aspectRatio; // 200px is our fixed height
+                    const width = 200 * aspectRatio;
                     e.target.parentElement.style.width = `${width}px`;
                   }}
                 />
                 {hoveredImageUrl === url && metadata[url] && (
                   <div 
                     className="position-absolute"
-                    onMouseEnter={() => {
-                      if (hideTimeoutRef.current) {
-                        clearTimeout(hideTimeoutRef.current);
-                        hideTimeoutRef.current = null;
-                      }
-                    }}
-                    onMouseLeave={() => handleImageHover(url, false)}
                     style={{
-                      background: 'rgba(51, 65, 85, 0.97)',
+                      inset: 0,
+                      background: 'rgba(0, 0, 0, 0.3)',
                       color: 'white',
-                      padding: '0.75rem',
                       display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      zIndex: 1000,
-                      minWidth: '160px',
-                      minHeight: '140px',
-                      width: 'max-content',
-                      maxWidth: '240px',
-                      borderRadius: '6px',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-                      bottom: '85%',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      marginBottom: '0',
-                      cursor: 'default'
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      opacity: 0,
+                      animation: 'fadeIn 0.2s ease-in-out forwards',
                     }}
-                    onClick={(e) => e.stopPropagation()}
                   >
-                    {/* Top section with title and metadata */}
-                    <div>
-                      <h6 
-                        className="mb-1"
-                        style={{ 
-                          fontSize: '0.9rem',
-                          lineHeight: '1.2',
-                          marginBottom: '0.4rem',
-                          wordBreak: 'break-word'
-                        }}
-                      >
-                        {metadata[url].title}
-                      </h6>
-                      <div className="small" style={{ opacity: 0.9, fontSize: '0.8rem' }}>
-                        {metadata[url].creator && <div className="mb-1">{metadata[url].creator}</div>}
-                        {metadata[url].date && <div className="mb-1">{metadata[url].date}</div>}
+                    <div style={{ 
+                      fontSize: '0.7rem',
+                      padding: '0.5rem',
+                      textAlign: 'center',
+                      textShadow: '0 1px 2px rgba(0,0,0,0.6)',
+                      maxWidth: '90%'
+                    }}>
+                      {metadata[url].title}
+                      <div style={{ fontSize: '0.65rem', marginTop: '0.25rem', opacity: 0.9 }}>
+                        Click for details
                       </div>
                     </div>
-
-                    {/* Bottom section with actions */}
-                    <div className="action-buttons" style={{ marginTop: '0.5rem' }}>
-                      <div className="d-flex flex-column gap-1">
-                        <button
-                          className="btn btn-sm btn-outline-light w-100"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open(generateBookLink(url), '_blank');
-                          }}
-                          style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
-                        >
-                          View in Book
-                        </button>
-                        <button
-                          className="btn btn-sm btn-outline-light w-100"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleImageClick(url);
-                          }}
-                          style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
-                        >
-                          Find Similar Images
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Arrow pointing to the image */}
-                    <div 
-                      style={{
-                        position: 'absolute',
-                        bottom: '-6px',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        width: '10px',
-                        height: '10px',
-                        background: 'rgba(51, 65, 85, 0.97)',
-                        clipPath: 'polygon(50% 100%, 0 0, 100% 0)',
-                      }}
-                    />
                   </div>
                 )}
               </div>
@@ -476,6 +415,77 @@ export default function ImageSearch() {
           </div>
         )}
       </div>
+
+      {/* Image Modal */}
+      {selectedImageForModal && metadata[selectedImageForModal] && (
+        <div 
+          className="modal show"
+          style={{
+            display: 'block',
+            backgroundColor: 'rgba(0,0,0,0.5)',
+          }}
+          onClick={() => setSelectedImageForModal(null)}
+        >
+          <div 
+            className="modal-dialog modal-dialog-centered"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">{metadata[selectedImageForModal].title}</h5>
+                <button 
+                  type="button" 
+                  className="btn-close"
+                  onClick={() => setSelectedImageForModal(null)}
+                ></button>
+              </div>
+              <div className="modal-body">
+                <img 
+                  src={selectedImageForModal}
+                  alt={metadata[selectedImageForModal].title}
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    marginBottom: '1rem'
+                  }}
+                />
+                <div className="metadata">
+                  {metadata[selectedImageForModal].creator && (
+                    <p><strong>Creator:</strong> {metadata[selectedImageForModal].creator}</p>
+                  )}
+                  {metadata[selectedImageForModal].date && (
+                    <p><strong>Date:</strong> {metadata[selectedImageForModal].date}</p>
+                  )}
+                  {metadata[selectedImageForModal].publisher && (
+                    <p><strong>Publisher:</strong> {metadata[selectedImageForModal].publisher}</p>
+                  )}
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button
+                  className="btn btn-outline-primary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(generateBookLink(selectedImageForModal), '_blank');
+                  }}
+                >
+                  View in Book
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleImageClick(selectedImageForModal);
+                    setSelectedImageForModal(null);
+                  }}
+                >
+                  Find Similar Images
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 
