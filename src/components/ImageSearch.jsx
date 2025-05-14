@@ -437,15 +437,21 @@ export default function ImageSearch() {
           <div 
             className="modal-dialog modal-dialog-centered"
             style={{
-              maxWidth: '90vw',
-              width: 'auto',
+              maxWidth: 'min(90vw, 800px)',
+              width: 'fit-content',
               margin: '1.75rem auto'
             }}
             onClick={e => e.stopPropagation()}
           >
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title" style={{ fontSize: '1rem' }}>{metadata[selectedImageForModal].title}</h5>
+                <h5 className="modal-title" style={{ 
+                  fontSize: '1rem',
+                  maxWidth: '90%',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>{metadata[selectedImageForModal].title}</h5>
                 <button 
                   type="button" 
                   className="btn-close"
