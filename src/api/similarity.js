@@ -157,35 +157,56 @@ export const fetchImageMetadata = async (imageUrl) => {
     }
     
     const manifest = await response.json();
-    console.log('Raw metadata from manifest:', manifest.metadata);
+    console.log('Full manifest:', manifest);
     
     // Extract useful metadata
     const metadata = {
-      title: manifest.label?.no?.[0] || manifest.label?.['@value']?.[0] || manifest.label || 'Unknown Title',
-      attribution: manifest.attribution?.no?.[0] || manifest.attribution?.['@value']?.[0] || manifest.attribution || '',
+      title: manifest.label || '',
+      attribution: manifest.attribution || '',
       publisher: '',
       date: '',
       language: '',
       creator: '',
-      rawMetadata: manifest.metadata || [] // Store raw metadata for display
+      rawMetadata: manifest.metadata || []
     };
-    
-    // Parse additional metadata from manifest
-    if (manifest.metadata) {
+
+    // Parse metadata from manifest
+    if (manifest.metadata && Array.isArray(manifest.metadata)) {
       manifest.metadata.forEach(item => {
-        const label = item.label?.no?.[0]?.toLowerCase() || item.label?.['@value']?.[0]?.toLowerCase() || '';
-        const value = item.value?.no?.[0] || item.value?.['@value']?.[0] || '';
+        const label = item.label?.toLowerCase() || '';
+        const value = item.value || '';
         
-        console.log('Processing metadata item:', { label, value });
+        console.log('Processing metadata:', { label, value });
+
+        // Extract year from published info if it exists
+        const yearMatch = value.match(/\b\d{4}\b/);
         
-        if (label.includes('utgiver')) metadata.publisher = value;
-        else if (label.includes('dato') || label.includes('year') || label.includes('år')) metadata.date = value;
-        else if (label.includes('språk') || label.includes('language')) metadata.language = value;
-        else if (label.includes('skaper') || label.includes('creator') || label.includes('author') || label.includes('forfatter')) metadata.creator = value;
+        switch(label) {
+          case 'tittel':
+            metadata.title = value;
+            break;
+          case 'forfatter':
+            metadata.creator = value;
+            break;
+          case 'publisert':
+            metadata.publisher = value;
+            if (yearMatch) {
+              metadata.date = yearMatch[0];
+            }
+            break;
+          case 'språk':
+            metadata.language = value;
+            break;
+          case 'medforfatter/bidragsyter':
+            if (!metadata.creator) {
+              metadata.creator = value;
+            }
+            break;
+        }
       });
     }
     
-    console.log('Extracted metadata:', metadata);
+    console.log('Final extracted metadata:', metadata);
     return metadata;
   } catch (error) {
     console.error('Metadata fetch error:', error);
