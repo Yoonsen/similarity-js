@@ -248,30 +248,30 @@ export default function ImageSearch() {
   return (
     <div className="container-fluid py-4">
       {/* Search input section */}
-      <div className="row mb-4">
-        <div className="col-md-8 mx-auto">
-          <div className="input-group">
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyPress={handleKeyPress}
-              className="form-control"
-              placeholder="Enter search term and press Enter..."
-            />
-            <button 
-              onClick={handleSearch}
-              disabled={loading}
-              className="btn btn-primary"
-            >
-              {loading ? (
-                <>
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  Searching...
-                </>
-              ) : 'Search'}
-            </button>
-          </div>
+      <div className="mb-4">
+        <div className="input-group">
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyPress={handleKeyPress}
+            className="form-control"
+            placeholder="Enter search term and press Enter..."
+            style={{ fontSize: '0.95rem' }}
+          />
+          <button 
+            onClick={handleSearch}
+            disabled={loading}
+            className="btn btn-primary"
+            style={{ fontSize: '0.95rem' }}
+          >
+            {loading ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Searching...
+              </>
+            ) : 'Search'}
+          </button>
         </div>
       </div>
 
@@ -320,10 +320,10 @@ export default function ImageSearch() {
           display: 'flex',
           flexWrap: 'wrap',
           gap: '0.25rem',
-          padding: '0 1rem',
-          maxWidth: '1800px',
-          margin: '0 auto',
-          alignItems: 'flex-start'
+          justifyContent: 'center',
+          alignItems: 'flex-start',
+          width: '100%',
+          margin: '0 auto'
         }}
       >
         {results && results.length > 0 ? (
@@ -332,7 +332,7 @@ export default function ImageSearch() {
               key={index} 
               className="position-relative"
               style={{
-                height: '200px', // Fixed height for all images
+                height: '200px',
                 flexGrow: 0,
                 flexShrink: 0,
                 display: 'flex',
