@@ -8,7 +8,15 @@ A React-based image similarity search application that interfaces with the Natio
 
 ## Development Timeline
 
-### Latest Updates (March 20, 2024)
+### Latest Updates (May 14, 2023)
+- ✅ Enhanced mobile viewport handling:
+  * Improved handling of wide images on mobile devices
+  * Implemented horizontal scrolling for oversized images while keeping UI fixed
+  * Added smooth touch scrolling with hardware acceleration
+  * Optimized viewport constraints to prevent layout shifts
+  * Maintained centered UI while allowing content overflow
+
+### Latest Updates (March 20, 2023)
 - ✅ Enhanced user interface and interactions:
   * Improved image hover effect with subtle scale transform
   * Added clean modal dialog for image details
@@ -130,7 +138,7 @@ Key dependencies and their versions:
 - URN parsing is handled in the API client
 
 ## Last Updated
-March 21, 2024
+March 21, 2023
 
 ---
 *This logbook will be updated as the project evolves. Please add entries for any significant changes or decisions.* 

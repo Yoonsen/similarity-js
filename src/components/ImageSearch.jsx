@@ -323,7 +323,11 @@ export default function ImageSearch() {
           justifyContent: 'center',
           alignItems: 'flex-start',
           width: '100%',
-          margin: '0 auto'
+          margin: '0 auto',
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch', // For smooth scrolling on iOS
+          maxWidth: '100vw',
+          padding: '0.5rem'
         }}
       >
         {results && results.length > 0 ? (

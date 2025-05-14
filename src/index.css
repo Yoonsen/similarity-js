@@ -17,6 +17,8 @@
 /* Prevent content reflow */
 html {
   overflow-y: scroll;
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
 }
 
 /* Prevent unwanted zoom on mobile */
@@ -30,10 +32,19 @@ body {
   min-width: 320px;
   min-height: 100vh;
   overflow-x: hidden;
+  width: 100%;
+  position: relative;
 }
 
-/* Force hardware acceleration */
+/* Ensure images don't break layout */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Improve scrolling on mobile */
 * {
+  -webkit-overflow-scrolling: touch;
   -webkit-backface-visibility: hidden;
   -moz-backface-visibility: hidden;
   backface-visibility: hidden;
