@@ -439,11 +439,13 @@ export default function ImageSearch() {
             style={{
               maxWidth: 'min(90vw, 800px)',
               width: 'fit-content',
-              margin: '1.75rem auto'
+              margin: '1.75rem auto',
+              transform: 'translate3d(0,0,0)', // Force GPU acceleration
+              willChange: 'transform' // Hint to browser about animation
             }}
             onClick={e => e.stopPropagation()}
           >
-            <div className="modal-content">
+            <div className="modal-content" style={{ overflowY: 'auto', maxHeight: '90vh' }}>
               <div className="modal-header">
                 <h5 className="modal-title" style={{ 
                   fontSize: '1rem',
