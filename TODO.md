@@ -123,6 +123,20 @@
   - [ ] Show similarity scores between images
   - [ ] Allow branching exploration of similar images
   - [ ] Add option to save/export similarity paths
+  - [ ] Implement network clustering visualization
+    * Research JavaScript network clustering libraries (e.g., vis.js, cytoscape.js)
+    * Add force-directed graph layout for similar images
+    * Implement community detection algorithms
+    * Add interactive cluster exploration
+    * Visualize similarity strength between clusters
+- [ ] Enhanced book-based navigation
+  - [ ] Extract and display all images from the same book
+  - [ ] Add book-level metadata and context
+  - [ ] Implement sequential navigation through book pages
+  - [ ] Show image position within book context
+  - [ ] Allow switching between book view and similarity view
+  - [ ] Add thumbnail strip for quick book navigation
+  - [ ] Implement book-to-book similarity exploration
 
 ## Notes
 - Priority should be given to core UX improvements
