@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { searchImages, findSimilarImages, fetchImageMetadata } from '../api/similarity';
 
 export default function ImageSearch() {
-  const [query, setQuery] = useState('daguerrotypi');
+  const [query, setQuery] = useState('spyd');
   const [results, setResults] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
