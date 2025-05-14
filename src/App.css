@@ -40,3 +40,33 @@
 .read-the-docs {
   color: #888;
 }
+
+.header-section h3 {
+  transition: color 0.2s ease-in-out;
+  margin-bottom: 0.5rem;
+}
+
+.header-section h3:hover {
+  color: #0056b3 !important;
+}
+
+.header-section h3::after {
+  content: '▼';
+  font-size: 0.4em;
+  margin-left: 0.5em;
+  vertical-align: middle;
+  opacity: 0.6;
+  display: inline-block;
+  transition: transform 0.2s ease-in-out;
+}
+
+.header-section h3[data-expanded="false"]::after {
+  transform: rotate(-90deg);
+}
+
+code {
+  background: rgba(0,0,0,0.05);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-size: 0.85em;
+}
