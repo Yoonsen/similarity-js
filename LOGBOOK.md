@@ -24,6 +24,11 @@ A React-based image similarity search application that interfaces with the Natio
   * Collapsible instructions with examples
   * Search syntax guidance
   * Smooth animations and transitions
+- ✅ Improved metadata handling:
+  * Implemented correct Norwegian field mapping (Tittel → title, Forfatter → creator, Publisert → publisher/date)
+  * Enhanced metadata extraction from IIIF manifests
+  * Added year extraction from publication data
+  * Improved metadata display in UI
 
 ### Initial Setup (Completed)
 - ✅ Created React/Vite project structure
@@ -125,7 +130,7 @@ Key dependencies and their versions:
 - URN parsing is handled in the API client
 
 ## Last Updated
-March 20, 2024
+March 21, 2024
 
 ---
 *This logbook will be updated as the project evolves. Please add entries for any significant changes or decisions.* 
