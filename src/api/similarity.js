@@ -66,15 +66,7 @@ export const findSimilarImages = async (imageUrl = null, limit = 20) => {
       throw new Error('Invalid response format from similar images API');
     }
 
-    // Log the structure of each book's images
-    Object.entries(data).forEach(([bookId, urls]) => {
-      console.log(`Book ${bookId} images:`, urls);
-      if (!Array.isArray(urls)) {
-        console.error(`Invalid URLs format for book ${bookId}:`, urls);
-      }
-    });
-
-    return data;
+    return normalizeSimilarImagesResponse(data);
   } catch (error) {
     console.error('Similar image fetch error:', error);
     throw error;
@@ -137,6 +129,195 @@ const extractUrnParts = (imageUrl) => {
     doctyp,
     urn,
     page: parseInt(page)
+  };
+};
+
+const extractBookIdFromImageUrl = (imageUrl) => {
+  if (!imageUrl || typeof imageUrl !== 'string') {
+    return null;
+  }
+
+  const urnMatch = imageUrl.match(/URN:NBN:no-nb_[^/_]+_[^/]+/);
+  return urnMatch ? urnMatch[0] : null;
+};
+
+const normalizeSimilarImagesResponse = (data) => {
+  const entries = [];
+
+  // New API format: [[url, score], [url, score], ...]
+  if (Array.isArray(data)) {
+    data.forEach((item) => {
+      if (Array.isArray(item) && typeof item[0] === 'string') {
+        entries.push({
+          url: item[0],
+          score: typeof item[1] === 'number' ? item[1] : null,
+          bookId: extractBookIdFromImageUrl(item[0]),
+        });
+      } else if (typeof item === 'string') {
+        entries.push({
+          url: item,
+          score: null,
+          bookId: extractBookIdFromImageUrl(item),
+        });
+      }
+    });
+  }
+
+  // Legacy API format: {bookId: [url, ...]} or {bookId: [[url, score], ...]}
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    Object.entries(data).forEach(([bookId, urls]) => {
+      if (!Array.isArray(urls)) return;
+
+      urls.forEach((item) => {
+        if (Array.isArray(item) && typeof item[0] === 'string') {
+          entries.push({
+            url: item[0],
+            score: typeof item[1] === 'number' ? item[1] : null,
+            bookId,
+          });
+        } else if (typeof item === 'string') {
+          entries.push({
+            url: item,
+            score: null,
+            bookId,
+          });
+        }
+      });
+    });
+  }
+
+  // Deduplicate URLs by keeping the strongest score
+  const byUrl = new Map();
+  entries.forEach((entry) => {
+    if (!entry.url || !entry.url.includes('URN:NBN:no-nb_')) return;
+    const existing = byUrl.get(entry.url);
+    if (!existing) {
+      byUrl.set(entry.url, entry);
+      return;
+    }
+
+    const existingScore = existing.score ?? -Infinity;
+    const incomingScore = entry.score ?? -Infinity;
+    if (incomingScore > existingScore) {
+      byUrl.set(entry.url, entry);
+    }
+  });
+
+  return Array.from(byUrl.values()).sort((a, b) => (b.score ?? -Infinity) - (a.score ?? -Infinity));
+};
+
+export const buildRecursiveImageSimilarityGraph = async (
+  rootImageUrl,
+  {
+    depth = 2,
+    limit = 10,
+    minSimilarity = 0.8,
+    maxNodes = 200,
+    maxEdges = 1000,
+    includeSelfLoops = false,
+    onProgress = null,
+  } = {}
+) => {
+  if (!rootImageUrl || typeof rootImageUrl !== 'string') {
+    throw new Error('A valid root image URL is required');
+  }
+
+  const maxDepth = Math.max(1, Number(depth) || 1);
+  const maxPerNode = Math.max(1, Number(limit) || 1);
+  const similarityThreshold = Number.isFinite(Number(minSimilarity)) ? Number(minSimilarity) : 0;
+
+  const nodesByUrl = new Map();
+  const edgesByKey = new Map();
+  const queue = [{ url: rootImageUrl, depth: 0 }];
+  const expanded = new Set();
+
+  nodesByUrl.set(rootImageUrl, {
+    id: rootImageUrl,
+    url: rootImageUrl,
+    depth: 0,
+    isRoot: true,
+    bookId: extractBookIdFromImageUrl(rootImageUrl),
+  });
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current || current.depth >= maxDepth) continue;
+    if (expanded.has(current.url)) continue;
+    if (nodesByUrl.size >= maxNodes || edgesByKey.size >= maxEdges) break;
+
+    expanded.add(current.url);
+
+    const similar = await findSimilarImages(current.url, maxPerNode);
+    const filtered = similar
+      .filter((item) => item?.url)
+      .filter((item) => item.url !== current.url || includeSelfLoops)
+      .filter((item) => item.score == null || item.score >= similarityThreshold)
+      .slice(0, maxPerNode);
+
+    filtered.forEach((neighbor) => {
+      if (nodesByUrl.size >= maxNodes || edgesByKey.size >= maxEdges) return;
+
+      const nextDepth = current.depth + 1;
+      if (!nodesByUrl.has(neighbor.url)) {
+        nodesByUrl.set(neighbor.url, {
+          id: neighbor.url,
+          url: neighbor.url,
+          depth: nextDepth,
+          isRoot: false,
+          bookId: neighbor.bookId || extractBookIdFromImageUrl(neighbor.url),
+        });
+      } else {
+        const existingNode = nodesByUrl.get(neighbor.url);
+        if (nextDepth < existingNode.depth) {
+          existingNode.depth = nextDepth;
+        }
+      }
+
+      const source = current.url;
+      const target = neighbor.url;
+      if (source === target && !includeSelfLoops) return;
+
+      const edgeKey = source < target ? `${source}::${target}` : `${target}::${source}`;
+      const edgeWeight = typeof neighbor.score === 'number' ? neighbor.score : 0;
+      const existingEdge = edgesByKey.get(edgeKey);
+
+      if (!existingEdge) {
+        edgesByKey.set(edgeKey, {
+          id: edgeKey,
+          source,
+          target,
+          weight: edgeWeight,
+        });
+      } else if (edgeWeight > existingEdge.weight) {
+        existingEdge.weight = edgeWeight;
+      }
+
+      if (nextDepth <= maxDepth && !expanded.has(neighbor.url)) {
+        queue.push({ url: neighbor.url, depth: nextDepth });
+      }
+    });
+
+    if (typeof onProgress === 'function') {
+      onProgress({
+        expandedNodes: expanded.size,
+        queuedNodes: queue.length,
+        nodes: nodesByUrl.size,
+        edges: edgesByKey.size,
+      });
+    }
+  }
+
+  return {
+    root: rootImageUrl,
+    params: {
+      depth: maxDepth,
+      limit: maxPerNode,
+      minSimilarity: similarityThreshold,
+      maxNodes,
+      maxEdges,
+    },
+    nodes: Array.from(nodesByUrl.values()).sort((a, b) => a.depth - b.depth),
+    edges: Array.from(edgesByKey.values()).sort((a, b) => b.weight - a.weight),
   };
 };
 
