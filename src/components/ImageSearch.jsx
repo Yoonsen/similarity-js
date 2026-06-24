@@ -199,6 +199,10 @@ const computeCliqueAssignments = (clusters) => {
   return assignments;
 };
 
+const getAssignedCluster = (clustersByNode, nodeId) => (
+  Object.prototype.hasOwnProperty.call(clustersByNode, nodeId) ? clustersByNode[nodeId] : null
+);
+
 const buildRadialLayout = (graphData, communities) => {
   const centerX = GRAPH_WIDTH / 2;
   const centerY = GRAPH_HEIGHT / 2;
@@ -222,14 +226,16 @@ const buildRadialLayout = (graphData, communities) => {
         x: centerX,
         y: centerY,
         radius: 14,
-        community: communities[rootNode.id] ?? 0,
+        community: getAssignedCluster(communities, rootNode.id),
       });
       return;
     }
 
     layerNodes.sort((a, b) => {
-      const cA = communities[a.id] ?? 0;
-      const cB = communities[b.id] ?? 0;
+      const cA = getAssignedCluster(communities, a.id);
+      const cB = getAssignedCluster(communities, b.id);
+      if (cA === null && cB !== null) return 1;
+      if (cA !== null && cB === null) return -1;
       if (cA !== cB) return cA - cB;
       return a.id.localeCompare(b.id);
     });
@@ -243,7 +249,7 @@ const buildRadialLayout = (graphData, communities) => {
         x: centerX + radius * Math.cos(angle),
         y: centerY + radius * Math.sin(angle),
         radius: 7,
-        community: communities[node.id] ?? 0,
+        community: getAssignedCluster(communities, node.id),
       });
     });
   });
@@ -287,7 +293,7 @@ const buildForceDirectedLayout = (graphData, communities) => {
       vx: 0,
       vy: 0,
       radius: node.isRoot ? 13 : 7,
-      community: communities[node.id] ?? 0,
+      community: getAssignedCluster(communities, node.id),
     };
   });
 

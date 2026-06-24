@@ -129,6 +129,9 @@
     * Implement community detection algorithms
     * Add interactive cluster exploration
     * Visualize similarity strength between clusters
+    * Add maximal clique listing/view alongside k-clique clustering
+    * Add line graph clustering for edge-centered similarity structure
+    * Compare/visualize overlap between line graph clusters and Louvain communities
 - [ ] Enhanced book-based navigation
   - [ ] Extract and display all images from the same book
   - [ ] Add book-level metadata and context
