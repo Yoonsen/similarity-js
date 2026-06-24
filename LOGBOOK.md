@@ -8,6 +8,12 @@ A React-based image similarity search application that interfaces with the Natio
 
 ## Development Timeline
 
+### Latest Updates (June 24, 2026)
+- ✅ Implemented recursive clustering:
+  * Added recursive exploration of related images
+  * Added depth control for clustering traversal
+  * Improved tracking of similarity relationships across clusters
+
 ### Latest Updates (May 14, 2023)
 - ✅ Enhanced mobile viewport handling:
   * Improved handling of wide images on mobile devices
@@ -108,11 +114,6 @@ The application is functional and deployed on GitHub Pages with the following fe
    - [ ] Implement batch similar image search
    - [ ] Add export functionality for search results
    - [ ] Integrate similar words search feature
-   - [ ] Implement recursive similarity search
-     * Allow exploring chains of similar images
-     * Control recursion depth
-     * Visualize similarity relationships
-     * Track and export similarity paths
 
 4. **Development**
    - [ ] Add unit tests
@@ -138,7 +139,7 @@ Key dependencies and their versions:
 - URN parsing is handled in the API client
 
 ## Last Updated
-March 21, 2023
+June 24, 2026
 
 ---
 *This logbook will be updated as the project evolves. Please add entries for any significant changes or decisions.* 

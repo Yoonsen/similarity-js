@@ -23,6 +23,10 @@ const COMMUNITY_COLORS = [
 
 const GRAPH_WIDTH = 1200;
 const GRAPH_HEIGHT = 860;
+const DEFAULT_CLIQUE_SIZE = 3;
+const CLIQUE_SIZES = [3, 4, 5];
+const MAX_K_CLIQUES = 250;
+const MAX_K_CLIQUE_OPERATIONS = 300000;
 
 const getCommunityColor = (communityId) => {
   if (communityId === null || communityId === undefined) return '#6c757d';
@@ -55,6 +59,144 @@ const computeCommunities = (graphData) => {
     console.warn('Louvain clustering failed, falling back to single community:', error);
     return Object.fromEntries(graphData.nodes.map((node) => [node.id, 0]));
   }
+};
+
+const buildAdjacency = (graphData) => {
+  const adjacency = new Map();
+  graphData.nodes.forEach((node) => {
+    adjacency.set(node.id, new Set());
+  });
+
+  graphData.edges.forEach((edge) => {
+    if (!edge?.source || !edge?.target || edge.source === edge.target) return;
+    if (!adjacency.has(edge.source) || !adjacency.has(edge.target)) return;
+    adjacency.get(edge.source).add(edge.target);
+    adjacency.get(edge.target).add(edge.source);
+  });
+
+  return adjacency;
+};
+
+const computeKCliques = (graphData, cliqueSize = DEFAULT_CLIQUE_SIZE, maxCliques = MAX_K_CLIQUES) => {
+  if (!graphData?.nodes?.length || !graphData?.edges?.length) return [];
+
+  const adjacency = buildAdjacency(graphData);
+  const nodeIds = graphData.nodes
+    .map((node) => node.id)
+    .sort((a, b) => {
+      const degreeDiff = (adjacency.get(b)?.size ?? 0) - (adjacency.get(a)?.size ?? 0);
+      return degreeDiff || a.localeCompare(b);
+    });
+  const cliques = [];
+  let operations = 0;
+
+  const extendClique = (currentClique, candidates) => {
+    operations += 1;
+    if (operations > MAX_K_CLIQUE_OPERATIONS || cliques.length >= maxCliques) return;
+
+    if (currentClique.length === cliqueSize) {
+      cliques.push([...currentClique].sort());
+      return;
+    }
+
+    if (currentClique.length + candidates.length < cliqueSize) return;
+
+    candidates.forEach((nodeId, index) => {
+      if (operations > MAX_K_CLIQUE_OPERATIONS || cliques.length >= maxCliques) return;
+      const neighbors = adjacency.get(nodeId) || new Set();
+      const nextCandidates = candidates.slice(index + 1).filter((candidate) => neighbors.has(candidate));
+      extendClique([...currentClique, nodeId], nextCandidates);
+    });
+  };
+
+  extendClique([], nodeIds);
+
+  return cliques
+    .sort((a, b) => {
+      if (b.length !== a.length) return b.length - a.length;
+      return a[0].localeCompare(b[0]);
+    })
+    .map((nodes, index) => ({
+      id: index,
+      nodes,
+      size: nodes.length,
+    }));
+};
+
+const countOverlap = (left, rightSet) => left.reduce((count, nodeId) => count + (rightSet.has(nodeId) ? 1 : 0), 0);
+
+const computeKCliqueClusters = (cliques, cliqueSize = DEFAULT_CLIQUE_SIZE) => {
+  if (!cliques.length) return [];
+
+  const parent = cliques.map((_, index) => index);
+  const find = (index) => {
+    if (parent[index] !== index) {
+      parent[index] = find(parent[index]);
+    }
+    return parent[index];
+  };
+  const union = (left, right) => {
+    const leftRoot = find(left);
+    const rightRoot = find(right);
+    if (leftRoot !== rightRoot) parent[rightRoot] = leftRoot;
+  };
+  const cliqueNodeSets = cliques.map((clique) => new Set(clique.nodes));
+
+  for (let i = 0; i < cliques.length; i += 1) {
+    for (let j = i + 1; j < cliques.length; j += 1) {
+      if (countOverlap(cliques[i].nodes, cliqueNodeSets[j]) >= cliqueSize - 1) {
+        union(i, j);
+      }
+    }
+  }
+
+  const clustersByRoot = new Map();
+  cliques.forEach((clique, index) => {
+    const root = find(index);
+    if (!clustersByRoot.has(root)) {
+      clustersByRoot.set(root, {
+        cliqueIds: [],
+        nodeSet: new Set(),
+      });
+    }
+    const cluster = clustersByRoot.get(root);
+    cluster.cliqueIds.push(clique.id);
+    clique.nodes.forEach((nodeId) => cluster.nodeSet.add(nodeId));
+  });
+
+  return Array.from(clustersByRoot.values())
+    .map((cluster, index) => ({
+      id: index,
+      cliqueIds: cluster.cliqueIds,
+      nodes: Array.from(cluster.nodeSet).sort(),
+      size: cluster.nodeSet.size,
+      cliqueCount: cluster.cliqueIds.length,
+    }))
+    .sort((a, b) => {
+      if (b.size !== a.size) return b.size - a.size;
+      return b.cliqueCount - a.cliqueCount;
+    })
+    .map((cluster, index) => ({ ...cluster, id: index }));
+};
+
+const computeKCliqueStats = (graphData) => Object.fromEntries(
+  CLIQUE_SIZES.map((cliqueSize) => {
+    const cliques = computeKCliques(graphData, cliqueSize);
+    const clusters = computeKCliqueClusters(cliques, cliqueSize);
+    return [cliqueSize, { cliques, clusters }];
+  })
+);
+
+const computeCliqueAssignments = (clusters) => {
+  const assignments = {};
+  clusters.forEach((cluster) => {
+    cluster.nodes.forEach((nodeId) => {
+      if (assignments[nodeId] === undefined) {
+        assignments[nodeId] = cluster.id;
+      }
+    });
+  });
+  return assignments;
 };
 
 const buildRadialLayout = (graphData, communities) => {
@@ -268,6 +410,8 @@ export default function ImageSearch() {
     maxNodes: 180,
   });
   const [layoutMode, setLayoutMode] = useState('circular');
+  const [clusterMode, setClusterMode] = useState('louvain');
+  const [cliqueSize, setCliqueSize] = useState(DEFAULT_CLIQUE_SIZE);
 
   const ensureMetadata = useCallback(async (url) => {
     if (!url || metadata[url] !== undefined) return metadata[url] ?? null;
@@ -365,9 +509,11 @@ export default function ImageSearch() {
       });
 
       const communityByNode = computeCommunities(rawGraph);
+      const kCliqueStats = computeKCliqueStats(rawGraph);
       setGraphData({
         ...rawGraph,
         communities: communityByNode,
+        kCliqueStats,
       });
     } catch (err) {
       console.error('Graph build error:', err);
@@ -429,30 +575,49 @@ export default function ImageSearch() {
     return `https://www.nb.no/items/${baseUrn}?page=${page}`;
   };
 
-  const selectedCommunityId = useMemo(() => {
-    if (!selectedImageForModal || !graphData?.communities) return null;
-    const community = graphData.communities[selectedImageForModal];
-    return community === undefined ? null : community;
-  }, [selectedImageForModal, graphData]);
+  const activeCliqueStats = useMemo(() => graphData?.kCliqueStats?.[cliqueSize] || { cliques: [], clusters: [] }, [graphData, cliqueSize]);
+
+  const cliqueMembershipCountByNode = useMemo(() => {
+    const counts = {};
+    activeCliqueStats.cliques.forEach((clique) => {
+      clique.nodes.forEach((nodeId) => {
+        counts[nodeId] = (counts[nodeId] || 0) + 1;
+      });
+    });
+    return counts;
+  }, [activeCliqueStats]);
+
+  const activeClusterByNode = useMemo(() => {
+    if (!graphData) return {};
+    return clusterMode === 'cliques' ? computeCliqueAssignments(activeCliqueStats.clusters) : graphData.communities || {};
+  }, [clusterMode, graphData, activeCliqueStats]);
+
+  const selectedClusterId = useMemo(() => {
+    if (!selectedImageForModal) return null;
+    const cluster = activeClusterByNode[selectedImageForModal];
+    return cluster === undefined ? null : cluster;
+  }, [selectedImageForModal, activeClusterByNode]);
 
   const selectedClusterNodes = useMemo(() => {
-    if (selectedCommunityId === null || !graphData?.nodes?.length || !graphData?.communities) return [];
+    if (selectedClusterId === null || !graphData?.nodes?.length) return [];
 
     return graphData.nodes
-      .filter((node) => graphData.communities[node.id] === selectedCommunityId)
+      .filter((node) => activeClusterByNode[node.id] === selectedClusterId)
       .sort((a, b) => {
         if ((a.depth ?? 0) !== (b.depth ?? 0)) return (a.depth ?? 0) - (b.depth ?? 0);
         return a.id.localeCompare(b.id);
       });
-  }, [selectedCommunityId, graphData]);
+  }, [selectedClusterId, graphData, activeClusterByNode]);
 
   const graphLayout = useMemo(() => {
     if (!graphData?.nodes?.length) return null;
     if (layoutMode === 'force') {
-      return buildForceDirectedLayout(graphData, graphData.communities || {});
+      return buildForceDirectedLayout(graphData, activeClusterByNode);
     }
-    return buildRadialLayout(graphData, graphData.communities || {});
-  }, [graphData, layoutMode]);
+    return buildRadialLayout(graphData, activeClusterByNode);
+  }, [graphData, layoutMode, activeClusterByNode]);
+
+  const activeClusterLabel = clusterMode === 'cliques' ? `${cliqueSize}-clique cluster` : 'Community';
 
   return (
     <div className="container-fluid py-4">
@@ -488,9 +653,14 @@ export default function ImageSearch() {
                 <img src={selectedImage} alt="Selected image" style={{ height: '100px', marginRight: '1rem' }} />
                 <div>
                   <h5 className="card-title">Finding similar images</h5>
-                  <button onClick={handleSearch} className="btn btn-sm btn-outline-secondary">
-                    ← Back to search results
-                  </button>
+                  <div className="d-flex flex-wrap gap-2">
+                    <button onClick={handleSearch} className="btn btn-sm btn-outline-secondary">
+                      ← Back to search results
+                    </button>
+                    <button onClick={() => handleOpenGraphModal(selectedImage)} className="btn btn-sm btn-outline-dark">
+                      Build Similarity Graph
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -571,6 +741,24 @@ export default function ImageSearch() {
                     e.target.parentElement.style.width = `${width}px`;
                   }}
                 />
+                <button
+                  type="button"
+                  className="btn btn-sm btn-dark position-absolute"
+                  style={{
+                    top: '0.35rem',
+                    right: '0.35rem',
+                    padding: '0.2rem 0.45rem',
+                    fontSize: '0.7rem',
+                    opacity: 0.88,
+                    zIndex: 2,
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenGraphModal(url);
+                  }}
+                >
+                  Graph
+                </button>
                 {hoveredImageUrl === url && metadata[url] && (
                   <div
                     className="position-absolute"
@@ -679,11 +867,24 @@ export default function ImageSearch() {
                   )}
                 </div>
 
+                <div className="d-grid gap-2 mt-3">
+                  <button
+                    type="button"
+                    className="btn btn-outline-dark btn-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenGraphModal(selectedImageForModal);
+                    }}
+                  >
+                    Build Similarity Graph
+                  </button>
+                </div>
+
                 {selectedClusterNodes.length > 0 && (
                   <div className="mt-3">
                     <div className="d-flex justify-content-between align-items-center mb-2">
                       <h6 className="mb-0">
-                        Cluster {String(selectedCommunityId)} ({selectedClusterNodes.length} images)
+                        {activeClusterLabel} {String(selectedClusterId)} ({selectedClusterNodes.length} images)
                       </h6>
                       <small className="text-muted">Click a thumbnail to switch image</small>
                     </div>
@@ -708,7 +909,7 @@ export default function ImageSearch() {
                           style={{
                             borderRadius: '4px',
                             overflow: 'hidden',
-                            boxShadow: node.url === selectedImageForModal ? `0 0 0 3px ${getCommunityColor(selectedCommunityId)}` : 'none',
+                            boxShadow: node.url === selectedImageForModal ? `0 0 0 3px ${getCommunityColor(selectedClusterId)}` : 'none',
                           }}
                           onClick={async (e) => {
                             e.stopPropagation();
@@ -785,7 +986,7 @@ export default function ImageSearch() {
               <div className="modal-header">
                 <div>
                   <h5 className="modal-title mb-1">Recursive image similarity graph</h5>
-                  <small className="text-muted">Depth-limited BFS with Louvain communities</small>
+                  <small className="text-muted">Depth-limited BFS with Louvain communities or k-clique clusters</small>
                 </div>
                 <button type="button" className="btn-close" onClick={() => setGraphModalOpen(false)}></button>
               </div>
@@ -852,26 +1053,65 @@ export default function ImageSearch() {
                 {!graphLoading && graphLayout && (
                   <>
                     <div className="small text-muted mb-2">
-                      Nodes: {graphData.nodes.length} | Edges: {graphData.edges.length} | Communities:{' '}
-                      {new Set(Object.values(graphData.communities)).size}
+                      Nodes: {graphData.nodes.length} | Edges: {graphData.edges.length} | Louvain communities:{' '}
+                      {new Set(Object.values(graphData.communities || {})).size} | {cliqueSize}-cliques: {activeCliqueStats.cliques.length} |{' '}
+                      {cliqueSize}-clique clusters: {activeCliqueStats.clusters.length}
                     </div>
-                    <div className="d-flex align-items-center gap-2 mb-2">
-                      <span className="small text-muted">Layout:</span>
-                      <div className="btn-group btn-group-sm" role="group" aria-label="Layout mode toggle">
-                        <button
-                          type="button"
-                          className={`btn ${layoutMode === 'circular' ? 'btn-primary' : 'btn-outline-primary'}`}
-                          onClick={() => setLayoutMode('circular')}
-                        >
-                          Circular
-                        </button>
-                        <button
-                          type="button"
-                          className={`btn ${layoutMode === 'force' ? 'btn-primary' : 'btn-outline-primary'}`}
-                          onClick={() => setLayoutMode('force')}
-                        >
-                          Force-directed
-                        </button>
+                    <div className="d-flex flex-wrap align-items-center gap-3 mb-2">
+                      <div className="d-flex align-items-center gap-2">
+                        <span className="small text-muted">Clusters:</span>
+                        <div className="btn-group btn-group-sm" role="group" aria-label="Cluster mode toggle">
+                          <button
+                            type="button"
+                            className={`btn ${clusterMode === 'louvain' ? 'btn-primary' : 'btn-outline-primary'}`}
+                            onClick={() => setClusterMode('louvain')}
+                          >
+                            Louvain
+                          </button>
+                          <button
+                            type="button"
+                            className={`btn ${clusterMode === 'cliques' ? 'btn-primary' : 'btn-outline-primary'}`}
+                            onClick={() => setClusterMode('cliques')}
+                          >
+                            k-cliques
+                          </button>
+                        </div>
+                      </div>
+                      {clusterMode === 'cliques' && (
+                        <div className="d-flex align-items-center gap-2">
+                          <span className="small text-muted">k:</span>
+                          <div className="btn-group btn-group-sm" role="group" aria-label="Clique size toggle">
+                            {CLIQUE_SIZES.map((size) => (
+                              <button
+                                type="button"
+                                key={size}
+                                className={`btn ${cliqueSize === size ? 'btn-primary' : 'btn-outline-primary'}`}
+                                onClick={() => setCliqueSize(size)}
+                              >
+                                {size}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div className="d-flex align-items-center gap-2">
+                        <span className="small text-muted">Layout:</span>
+                        <div className="btn-group btn-group-sm" role="group" aria-label="Layout mode toggle">
+                          <button
+                            type="button"
+                            className={`btn ${layoutMode === 'circular' ? 'btn-primary' : 'btn-outline-primary'}`}
+                            onClick={() => setLayoutMode('circular')}
+                          >
+                            Circular
+                          </button>
+                          <button
+                            type="button"
+                            className={`btn ${layoutMode === 'force' ? 'btn-primary' : 'btn-outline-primary'}`}
+                            onClick={() => setLayoutMode('force')}
+                          >
+                            Force-directed
+                          </button>
+                        </div>
                       </div>
                     </div>
                     <div style={{ border: '1px solid #e9ecef', borderRadius: '6px', overflow: 'hidden', background: '#fafafa' }}>
@@ -888,27 +1128,83 @@ export default function ImageSearch() {
                             strokeWidth={1 + Math.min(edge.weight ?? 0, 1) * 2}
                           />
                         ))}
-                        {graphLayout.nodes.map((node) => (
-                          <g key={node.id}>
-                            <circle
-                              cx={node.x}
-                              cy={node.y}
-                              r={node.radius}
-                              fill={getCommunityColor(node.community)}
-                              stroke={node.isRoot ? '#111827' : '#fff'}
-                              strokeWidth={node.isRoot ? 3 : 1.5}
-                              style={{ cursor: 'pointer' }}
-                              onClick={async () => {
-                                await ensureMetadata(node.url);
-                                setSelectedImageForModal(node.url);
-                              }}
-                            >
-                              <title>{metadata[node.url]?.title || node.url}</title>
-                            </circle>
-                          </g>
-                        ))}
+                        {graphLayout.nodes.map((node) => {
+                          const cliqueMembershipCount = cliqueMembershipCountByNode[node.id] || 0;
+                          const isCliqueOverlapNode = clusterMode === 'cliques' && cliqueMembershipCount > 1;
+                          const nodeTitle = `${metadata[node.url]?.title || node.url}${
+                            clusterMode === 'cliques' ? ` (${cliqueMembershipCount} ${cliqueSize}-cliques)` : ''
+                          }`;
+                          const handleNodeClick = async () => {
+                            await ensureMetadata(node.url);
+                            setSelectedImageForModal(node.url);
+                          };
+
+                          return (
+                            <g key={node.id}>
+                              {isCliqueOverlapNode ? (
+                                <rect
+                                  x={node.x - node.radius}
+                                  y={node.y - node.radius}
+                                  width={node.radius * 2}
+                                  height={node.radius * 2}
+                                  rx={2}
+                                  fill={getCommunityColor(node.community)}
+                                  fillOpacity={0.62}
+                                  stroke={node.isRoot ? '#111827' : '#212529'}
+                                  strokeWidth={node.isRoot ? 3 : 2}
+                                  style={{ cursor: 'pointer' }}
+                                  onClick={handleNodeClick}
+                                >
+                                  <title>{nodeTitle}</title>
+                                </rect>
+                              ) : (
+                                <circle
+                                  cx={node.x}
+                                  cy={node.y}
+                                  r={node.radius}
+                                  fill={getCommunityColor(node.community)}
+                                  stroke={node.isRoot ? '#111827' : '#fff'}
+                                  strokeWidth={node.isRoot ? 3 : 1.5}
+                                  style={{ cursor: 'pointer' }}
+                                  onClick={handleNodeClick}
+                                >
+                                  <title>{nodeTitle}</title>
+                                </circle>
+                              )}
+                            </g>
+                          );
+                        })}
                       </svg>
                     </div>
+                    {clusterMode === 'cliques' && (
+                      <div className="mt-3">
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                          <h6 className="mb-0">{cliqueSize}-clique clusters</h6>
+                          <small className="text-muted">Squares are images in more than one {cliqueSize}-clique</small>
+                        </div>
+                        {activeCliqueStats.clusters.length > 0 ? (
+                          <div className="d-flex flex-wrap gap-2">
+                            {activeCliqueStats.clusters.slice(0, 12).map((cluster) => (
+                              <button
+                                type="button"
+                                key={cluster.id}
+                                className="btn btn-sm btn-outline-secondary"
+                                onClick={async () => {
+                                  const firstNode = cluster.nodes[0];
+                                  if (!firstNode) return;
+                                  await ensureMetadata(firstNode);
+                                  setSelectedImageForModal(firstNode);
+                                }}
+                              >
+                                Cluster {cluster.id}: {cluster.size} images, {cluster.cliqueCount} cliques
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="small text-muted">No {cliqueSize}-cliques found in this graph.</div>
+                        )}
+                      </div>
+                    )}
                     <div className="small text-muted mt-2">Tip: Click a node to open image metadata and actions.</div>
                   </>
                 )}
